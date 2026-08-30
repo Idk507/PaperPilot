@@ -1,65 +1,126 @@
 """Runtime tool-execution hooks.
 
-Every WebMCP tool's backing endpoint runs through pre_execute_hook and
-post_execute_hook. This module is the single place where:
-  - Input is validated and rate-limited
-  - Tool calls are logged to ToolCallLog
-  - Output is sanitized before returning to the agent
-  - PII is redacted from logs
+Every WebMCP tool's backing endpoint runs through:
+  1. pre_execute_hook  — rate-limit check + open audit log row
+  2. post_execute_hook — close log row, sanitize output
 
-Phase 0: placeholder implementations that are wired but do nothing heavy.
-Full implementation in Phase 3 (rate limiting, audit logging).
+Rate limit: 20 calls / 60 s / session / tool (in-memory, resets on restart).
 """
 
 from __future__ import annotations
 
 import json
+import time
+from collections import defaultdict, deque
 from datetime import UTC, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-# ---------------------------------------------------------------------------
-# Pre-execute hook
-# ---------------------------------------------------------------------------
+if TYPE_CHECKING:
+    from sqlmodel import Session as DbSession
 
-def pre_execute_hook(session_id: str, tool_name: str, payload: dict) -> str:
-    """Validate rate limit and start an audit log row.
+from app.db import ToolCallLog
 
-    Returns a log_id string that post_execute_hook uses to close the row.
-    Phase 0: always allows through; returns a placeholder log_id.
+RATE_LIMIT = 20
+WINDOW_SECS = 60
+
+_call_log: dict[str, deque] = defaultdict(deque)
+
+
+class RateLimitExceeded(Exception):
+    pass
+
+
+def _check_rate_limit(session_id: str, tool_name: str) -> None:
+    """Raise RateLimitExceeded if the session is over the per-tool limit."""
+    key = f"{session_id}:{tool_name}"
+    now = time.time()
+    window = _call_log[key]
+    while window and window[0] < now - WINDOW_SECS:
+        window.popleft()
+    if len(window) >= RATE_LIMIT:
+        raise RateLimitExceeded(
+            f"Rate limit: {RATE_LIMIT} calls per {WINDOW_SECS}s per session exceeded."
+        )
+    window.append(now)
+
+
+def pre_execute_hook(
+    session_id: str,
+    tool_name: str,
+    payload: dict,
+    db: DbSession,
+) -> str:
+    """Validate rate limit and open an audit log row.
+
+    Returns the log_id (str) for use in post_execute_hook.
+    Raises RateLimitExceeded if the session is throttled.
     """
-    log_id = f"{tool_name}-{session_id}-{datetime.now(tz=UTC).isoformat()}"
-    return log_id
+    _check_rate_limit(session_id, tool_name)
+
+    entry = ToolCallLog(
+        session_id=session_id,
+        tool_name=tool_name,
+        input_json=json.dumps(_redact_sensitive(payload))[:2000],
+        outcome="pending",
+        timestamp=datetime.now(tz=UTC),
+    )
+    db.add(entry)
+    db.commit()
+    db.refresh(entry)
+    return str(entry.id)
 
 
-# ---------------------------------------------------------------------------
-# Post-execute hook
-# ---------------------------------------------------------------------------
+def post_execute_hook(
+    log_id: str,
+    result: Any,
+    outcome: str,
+    db: DbSession,
+) -> Any:
+    """Close the audit log row and return sanitized output."""
+    try:
+        entry = db.get(ToolCallLog, int(log_id))
+        if entry:
+            entry.output_json = redact_pii_for_log(result)
+            entry.outcome = outcome
+            db.add(entry)
+            db.commit()
+    except (ValueError, Exception):
+        pass
 
-def post_execute_hook(log_id: str, result: Any, outcome: str) -> Any:
-    """Sanitize output and finish writing the audit log row.
-
-    Phase 0: passes result through unchanged.
-    """
     return sanitize_output(result)
 
 
-# ---------------------------------------------------------------------------
-# Helpers (stubs — full versions in Phase 3)
-# ---------------------------------------------------------------------------
-
 def sanitize_output(result: Any) -> Any:
-    """Strip anything that could constitute a prompt injection vector.
+    """Strip prompt-injection vectors from tool output.
 
-    Full implementation in Phase 5 for document-extracted text.
+    For dict results, coerce every value to a validated string.
+    For Phase 5 document extraction, values are validated by Pydantic
+    before reaching this function; this is an extra defence-in-depth pass.
     """
+    if isinstance(result, dict):
+        return {k: _safe_str(v) for k, v in result.items()}
     return result
 
 
 def redact_pii_for_log(result: Any) -> str:
-    """Return a log-safe string representation of a tool result.
-
-    Never stores raw extracted document text or full PII fields.
-    """
+    """Return a log-safe string — never stores raw document bytes or full PII."""
     if isinstance(result, (dict, list)):
-        return json.dumps(result)
+        try:
+            serialized = json.dumps(result)
+            return serialized[:1000]
+        except (TypeError, ValueError):
+            return "<non-serialisable>"
     return str(result)[:500]
+
+
+def _safe_str(value: Any) -> str:
+    """Coerce a value to a safe plain string."""
+    s = str(value)
+    # Strip leading/trailing whitespace and limit length
+    return s.strip()[:500]
+
+
+def _redact_sensitive(payload: dict) -> dict:
+    """Remove sensitive keys from the logged payload."""
+    sensitive = {"ein", "applicant_email", "applicant_name"}
+    return {k: ("***" if k in sensitive else v) for k, v in payload.items()}

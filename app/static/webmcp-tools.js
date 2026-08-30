@@ -68,15 +68,11 @@
   }
 
   // -------------------------------------------------------------------
-  // 3. Phase 0: no tools registered yet.
-  //    Imperative tools are added in Phase 3 (read-only) and Phase 4 (mutating).
+  // 3. Phase 3+: imperative tools registered below.
   //    Declarative tools live in form_step_1.html / form_step_2.html HTML attributes.
-  //
-  //    Stubs below show the exact shape each tool will take when added.
   // -------------------------------------------------------------------
 
-  /*
-  // --- Phase 3: explain_field (read-only) ---
+  // --- explain_field (read-only) ---
   // Justification: Replaces Googling "what is EIN" mid-form.
   //   Declarative <form> tool cannot return contextual explanations.
   registerTool({
@@ -107,7 +103,7 @@
     }
   });
 
-  // --- Phase 3: check_eligibility (read-only) ---
+  // --- check_eligibility (read-only) ---
   // Justification: Requires reading all saved session fields and running multi-condition
   //   rules. Cannot be expressed as a <form> declarative tool.
   registerTool({
@@ -123,7 +119,7 @@
     }
   });
 
-  // --- Phase 3: flag_issues (read-only) ---
+  // --- flag_issues (read-only) ---
   // Justification: Scans all fields for inconsistencies and missing values.
   //   Multi-field, session-level check cannot be a <form> declarative tool.
   registerTool({
@@ -139,6 +135,7 @@
     }
   });
 
+  /*
   // --- Phase 4: propose_fields (mutating — uncommitted proposals only) ---
   // Justification: Batch-proposes values without committing. Declarative <form> tool
   //   submits directly and cannot hold uncommitted state pending human review.
@@ -231,6 +228,6 @@
   });
   */
 
-  console.info('[PaperPilot] Phase 0: tool stubs loaded. Imperative tools activate in Phase 3+.');
+  console.info('[PaperPilot] Phase 3: explain_field, check_eligibility, flag_issues registered. Propose/save/extract activate in Phase 4+.');
 
 }());
