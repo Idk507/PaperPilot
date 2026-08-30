@@ -9,18 +9,9 @@ services:
         value: "3.11.9"
       - key: COOKIE_SECURE
         value: "true"
-      # SECRET_KEY — set in Render dashboard (Environment → Secret Files or env var)
+      # SECRET_KEY — set in Render dashboard if generateValue is not used
       # Generate with: python -c "import secrets; print(secrets.token_hex(32))"
       - key: SECRET_KEY
         generateValue: true
-      # Azure OpenAI — set in Render dashboard, do NOT hardcode here
-      - key: AI_FOUNDRY_PROJECT_ENDPOINT
-        sync: false
-      - key: AI_FOUNDRY_API_KEY
-        sync: false
-      - key: AI_FOUNDRY_DEPLOYMENT_NAME
-        value: "gpt-4.1"
-      - key: AI_FOUNDRY_API_VERSION
-        value: "2024-12-01-preview"
     autoDeploy: true
     healthCheckPath: /

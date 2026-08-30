@@ -47,14 +47,13 @@ def check_eligibility(session_id: str, db: DbSession) -> dict:
       {
         "eligible": bool | None,   # None = insufficient data
         "reasons": [{"field": str, "reason": str, "disqualifying": bool}],
-        "ai_summary": str | None,
       }
     """
     values = _committed_values(session_id, db)
     reasons: list[dict] = []
 
     if not values:
-        return {"eligible": None, "reasons": [], "ai_summary": None}
+        return {"eligible": None, "reasons": []}
 
     # Rule 1 — revenue cap
     try:
@@ -144,15 +143,7 @@ def check_eligibility(session_id: str, db: DbSession) -> dict:
     else:
         eligible = len(disqualifying) == 0
 
-    # Enrich with AI summary if available
-    ai_summary: str | None = None
-    try:
-        from app.services.ai import summarise_eligibility_with_ai
-        ai_summary = summarise_eligibility_with_ai(eligible, reasons, values)
-    except Exception:
-        pass
-
-    return {"eligible": eligible, "reasons": reasons, "ai_summary": ai_summary}
+    return {"eligible": eligible, "reasons": reasons}
 
 
 def flag_missing_or_risky(session_id: str, db: DbSession) -> dict:

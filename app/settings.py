@@ -16,12 +16,6 @@ from dotenv import load_dotenv
 _env_path = Path(__file__).parent.parent / ".env"
 load_dotenv(_env_path, override=False)  # don't override real env vars in prod
 
-# ── Azure OpenAI / AI Foundry ──────────────────────────────────────────────
-AI_ENDPOINT: str = os.getenv("AI_FOUNDRY_PROJECT_ENDPOINT", "").strip().rstrip("/")
-AI_KEY: str = os.getenv("AI_FOUNDRY_API_KEY", "").strip()
-AI_VERSION: str = os.getenv("AI_FOUNDRY_API_VERSION", "2024-12-01-preview").strip()
-AI_DEPLOYMENT: str = os.getenv("AI_FOUNDRY_DEPLOYMENT_NAME", "gpt-4.1").strip()
-
 # ── App security ───────────────────────────────────────────────────────────
 SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-secret-paperpilot-change-in-prod")
 

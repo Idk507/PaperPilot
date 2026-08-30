@@ -38,7 +38,7 @@ async def eligibility_check(
 ):
     """Run eligibility rules against the current session.
 
-    Returns {eligible, reasons, ai_summary}.
+    Returns {eligible, reasons}.
     All calls are logged to ToolCallLog via pre/post hooks.
     """
     session_id = _require_session(request)
@@ -54,7 +54,6 @@ async def eligibility_check(
     # Truncate output to ≤1500 chars as per spec guidance
     output = json.dumps(result)
     if len(output) > 1500:
-        result["ai_summary"] = None
         result["reasons"] = result["reasons"][:10]
 
     return result

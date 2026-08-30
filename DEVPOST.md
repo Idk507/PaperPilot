@@ -105,7 +105,6 @@ input are returned. Raw OCR text never reaches the agent.
 - Python 3.11+, FastAPI, SQLModel (SQLite), Pydantic, Jinja2
 - Vanilla JS — no framework; WebMCP tools are small `fetch()` wrappers
 - `pdfplumber` / `pytesseract` for document extraction
-- Azure OpenAI (`gpt-4.1`) for AI-enriched explanations (optional; degrades gracefully)
 - Render (Python web service, `render.yaml` included)
 
 ---

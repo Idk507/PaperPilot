@@ -71,14 +71,10 @@ Copy `.env.example` to `.env` and fill in the values:
 |---|---|---|
 | `SECRET_KEY` | **Yes** | Random string for CSRF token signing. Generate with `python -c "import secrets; print(secrets.token_hex(32))"` |
 | `COOKIE_SECURE` | Prod only | Set `true` in production (HTTPS). Default `false` (HTTP dev). |
-| `AI_FOUNDRY_PROJECT_ENDPOINT` | Optional | Azure OpenAI endpoint. Enables AI-enriched field explanations and eligibility summaries. |
-| `AI_FOUNDRY_API_KEY` | Optional | Azure OpenAI API key. |
-| `AI_FOUNDRY_DEPLOYMENT_NAME` | Optional | Model deployment name. Default `gpt-4.1`. |
-| `AI_FOUNDRY_API_VERSION` | Optional | API version. Default `2024-12-01-preview`. |
 | `DATABASE_URL` | Optional | SQLite path. Default `sqlite:///./paperpilot.db`. |
 | `UPLOADS_DIR` | Optional | Upload storage path. Default `./uploads`. |
 
-The app works fully without Azure OpenAI credentials — explanations fall back to static text, and the form flow is unaffected.
+Field explanations are static (no cloud LLM). Document extract uses pdfplumber / Tesseract regex. The Chrome Inspector’s Gemini key stays in the extension, not in this app.
 
 ---
 

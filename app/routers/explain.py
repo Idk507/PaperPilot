@@ -4,8 +4,6 @@ Route:
   GET /api/explain/{field_name}
 
 Returns a static dict explanation (hardcoded for reliability).
-Azure OpenAI is used as an optional enhancement if available;
-the static dict is always the fallback.
 
 Security: field_name is validated against an explicit server-side allowlist
 before lookup — never reflected back without validation.
@@ -218,28 +216,6 @@ async def explain_field(
     static = _EXPLANATIONS[field_name]
     result = dict(static)
     result["field_name"] = field_name
-
-    # Optionally enrich with Azure OpenAI for a more contextual response
-    try:
-        from app.services.ai import explain_field_with_ai
-        committed_values: dict = {}
-        if sid:
-            from sqlmodel import select
-
-            from app.db import FieldValue
-            rows = db.exec(
-                select(FieldValue).where(
-                    FieldValue.session_id == sid,
-                    FieldValue.committed == True,
-                )
-            ).all()
-            committed_values = {r.field_name: r.value for r in rows}
-
-        ai_text = explain_field_with_ai(field_name, committed_values)
-        if ai_text:
-            result["ai_explanation"] = ai_text[:400]
-    except Exception:
-        pass
 
     if sid and log_id:
         post_execute_hook(log_id, result, "success", db)
