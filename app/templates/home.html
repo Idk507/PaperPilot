@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div class="hero-badge">WebMCP Challenge 2026</div>
+  <h1>Grant paperwork,<br><span class="accent">made human again.</span></h1>
+  <p class="hero-sub">
+    PaperPilot lets you fill out the <strong>Small Business Recovery Grant</strong>
+    the normal way — but your AI agent can explain confusing fields, check your
+    eligibility, and extract data from your documents, all while you stay in control.
+  </p>
+  <a href="/form/" class="btn btn-primary btn-lg">Start Your Application</a>
+  <p class="hero-note">
+    No account needed &middot; Save and resume anytime &middot; Human always in control
+  </p>
+</section>
+
+<section class="how-it-works" id="about">
+  <h2>How it works</h2>
+  <div class="steps-grid">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h3>Fill out the form</h3>
+      <p>Complete the 3-step grant application like any normal web form. No agent required.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h3>Ask your agent for help</h3>
+      <p>Open the form in a WebMCP-enabled browser. Your agent can explain fields,
+         check eligibility, and read your uploaded documents.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h3>Review and accept</h3>
+      <p>Anything the agent suggests shows up as a highlighted proposal.
+         You accept or reject each change — nothing commits without your click.</p>
+    </div>
+  </div>
+</section>
+
+<section class="webmcp-note">
+  <h2>Why WebMCP?</h2>
+  <p>
+    Bureaucratic forms break naive AI agents (screenshot + click simulation) and blind
+    backend automation is dangerous — you do <em>not</em> want an agent submitting a grant
+    application without you seeing the final state.
+    WebMCP's model — tools live in the page, execute against real page state, and the
+    human watches the same UI the agent is acting on — is a structural fit, not a bolt-on.
+  </p>
+  <p>
+    <a href="https://developer.chrome.com/docs/ai/webmcp" target="_blank" rel="noopener">
+      Learn about WebMCP →
+    </a>
+  </p>
+</section>
+{% endblock %}

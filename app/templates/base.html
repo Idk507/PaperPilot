@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}PaperPilot{% endblock %} — Small Business Recovery Grant</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a class="logo" href="/">
+        <span class="logo-icon">✈</span>
+        <span class="logo-text">PaperPilot</span>
+      </a>
+      <nav class="site-nav">
+        <a href="/form/">Apply Now</a>
+        <a href="#about">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="site-main">
+    <div class="container">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>PaperPilot — WebMCP-powered grant application assistant.</p>
+      <p>
+        <a href="https://github.com/webmachinelearning/webmcp" target="_blank" rel="noopener">WebMCP Spec</a>
+        &middot;
+        <a href="https://webmcp.devpost.com/" target="_blank" rel="noopener">The WebMCP Challenge</a>
+      </p>
+    </div>
+  </footer>
+
+  <script src="/static/webmcp-tools.js" defer></script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

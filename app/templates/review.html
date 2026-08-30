@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Review Your Application{% endblock %}
+{% block content %}
+<div class="form-shell form-shell--review">
+  <h2 class="form-title">Review Your Application</h2>
+  <p class="form-desc">
+    Check everything below before submitting.
+    {% if proposed_fields %}
+    <span class="agent-badge">Your agent suggested {{ proposed_fields | length }} field(s) — review them below.</span>
+    {% endif %}
+  </p>
+
+  {% if proposed_fields %}
+  <div class="diff-banner">
+    <strong>Agent proposals pending your review.</strong>
+    Highlighted fields have been suggested by your AI agent but are
+    <em>not yet saved</em>. Accept or reject each one.
+    <form method="post" action="/form/commit_all" style="display:inline">
+      <button type="submit" class="btn btn-sm btn-accept">Accept All</button>
+    </form>
+    <form method="post" action="/form/reject_all" style="display:inline">
+      <button type="submit" class="btn btn-sm btn-reject">Reject All</button>
+    </form>
+  </div>
+  {% endif %}
+
+  {# --- Business Info --- #}
+  <section class="review-section">
+    <h3>Step 1 — Business Info</h3>
+    <div class="review-table">
+      {% for field in ['business_name','business_type','year_founded','state','ein'] %}
+      {% set committed = committed_values.get(field) %}
+      {% set proposed  = proposed_values.get(field) %}
+      <div class="review-row {% if proposed %}review-row--proposed{% endif %}">
+        <span class="review-label">{{ labels[field] }}</span>
+        <span class="review-value">
+          {% if proposed %}
+            <span class="current-value">{{ committed or '—' }}</span>
+            <span class="arrow">→</span>
+            <span class="proposed-value">{{ proposed }}
+              <span class="agent-badge-sm">agent</span>
+            </span>
+            <span class="review-actions">
+              <form method="post" action="/form/commit/{{ field }}" style="display:inline">
+                <button class="btn btn-xs btn-accept" type="submit">Accept</button>
+              </form>
+              <form method="post" action="/form/reject/{{ field }}" style="display:inline">
+                <button class="btn btn-xs btn-reject" type="submit">Reject</button>
+              </form>
+            </span>
+          {% else %}
+            {{ committed or '—' }}
+          {% endif %}
+        </span>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  {# --- Financial Info --- #}
+  <section class="review-section">
+    <h3>Step 2 — Financial Info</h3>
+    <div class="review-table">
+      {% for field in ['annual_revenue','employee_count','revenue_drop_pct','use_of_funds','use_of_funds_detail'] %}
+      {% set committed = committed_values.get(field) %}
+      {% set proposed  = proposed_values.get(field) %}
+      <div class="review-row {% if proposed %}review-row--proposed{% endif %}">
+        <span class="review-label">{{ labels[field] }}</span>
+        <span class="review-value">
+          {% if proposed %}
+            <span class="current-value">{{ committed or '—' }}</span>
+            <span class="arrow">→</span>
+            <span class="proposed-value">{{ proposed }}
+              <span class="agent-badge-sm">agent</span>
+            </span>
+            <span class="review-actions">
+              <form method="post" action="/form/commit/{{ field }}" style="display:inline">
+                <button class="btn btn-xs btn-accept" type="submit">Accept</button>
+              </form>
+              <form method="post" action="/form/reject/{{ field }}" style="display:inline">
+                <button class="btn btn-xs btn-reject" type="submit">Reject</button>
+              </form>
+            </span>
+          {% else %}
+            {{ committed or '—' }}
+          {% endif %}
+        </span>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  {# --- Applicant --- #}
+  <section class="review-section">
+    <h3>Step 3 — Applicant</h3>
+    <div class="review-table">
+      {% for field in ['applicant_name','applicant_email','certify'] %}
+      {% set committed = committed_values.get(field) %}
+      <div class="review-row">
+        <span class="review-label">{{ labels[field] }}</span>
+        <span class="review-value">{{ committed or '—' }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <div class="form-actions">
+    <a href="/form/" class="btn btn-secondary">← Edit</a>
+    <form method="post" action="/form/submit">
+      <button type="submit" class="btn btn-primary btn-submit"
+        {% if proposed_fields %}disabled title="Resolve all agent proposals before submitting"{% endif %}>
+        Submit Application →
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

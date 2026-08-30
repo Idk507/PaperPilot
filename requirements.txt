@@ -1,0 +1,16 @@
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+sqlmodel>=0.0.21
+pydantic[email]>=2.7.0
+jinja2>=3.1.4
+python-multipart>=0.0.9
+aiofiles>=23.2.1
+pdfplumber>=0.11.0
+pytesseract>=0.3.10
+Pillow>=10.4.0
+slowapi>=0.1.9
+ruff>=0.4.0
+pytest>=8.2.0
+httpx2>=0.28.0
+pre-commit>=3.7.0
+itsdangerous>=2.2.0

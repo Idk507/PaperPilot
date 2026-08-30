@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Step 3 — Documents & Applicant{% endblock %}
+{% block content %}
+<div class="form-shell">
+  <div class="form-progress">
+    <div class="progress-step done">1 Business Info</div>
+    <div class="progress-step done">2 Financials</div>
+    <div class="progress-step active">3 Documents</div>
+  </div>
+  <h2 class="form-title">Step 3 — Documents & Applicant Info</h2>
+  <p class="form-desc">Upload supporting documents (optional but recommended) and confirm your identity.</p>
+
+  {% if errors %}
+  <div class="alert alert-error" role="alert">
+    <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+
+  <form id="step3-form" method="post" action="/form/step/3" enctype="multipart/form-data" novalidate>
+
+    <fieldset class="fieldset">
+      <legend>Supporting Documents <span class="optional">(optional)</span></legend>
+      <p class="field-hint">
+        Upload your most recent tax return and/or bank statement.
+        Accepted: PDF, PNG, JPG &middot; Max 10 MB each.
+        Your AI agent can extract field values from these documents.
+      </p>
+
+      <div class="field-group">
+        <label for="tax_return_doc">Tax Return (PDF or image)</label>
+        <input
+          type="file"
+          id="tax_return_doc"
+          name="tax_return_doc"
+          accept=".pdf,.png,.jpg,.jpeg,.tiff">
+        {% if uploads.get('tax_return_doc') %}
+        <p class="upload-status upload-ok">✓ Uploaded: {{ uploads['tax_return_doc'] }}</p>
+        {% endif %}
+      </div>
+
+      <div class="field-group">
+        <label for="bank_statement_doc">Bank Statement (PDF or image)</label>
+        <input
+          type="file"
+          id="bank_statement_doc"
+          name="bank_statement_doc"
+          accept=".pdf,.png,.jpg,.jpeg,.tiff">
+        {% if uploads.get('bank_statement_doc') %}
+        <p class="upload-status upload-ok">✓ Uploaded: {{ uploads['bank_statement_doc'] }}</p>
+        {% endif %}
+      </div>
+    </fieldset>
+
+    <fieldset class="fieldset">
+      <legend>Applicant Information</legend>
+
+      <div class="field-group">
+        <label for="applicant_name">Full Name <span class="req">*</span></label>
+        <input
+          type="text"
+          id="applicant_name"
+          name="applicant_name"
+          value="{{ values.get('applicant_name', '') }}"
+          autocomplete="name"
+          required
+          maxlength="200">
+      </div>
+
+      <div class="field-group">
+        <label for="applicant_email">Email Address <span class="req">*</span></label>
+        <input
+          type="email"
+          id="applicant_email"
+          name="applicant_email"
+          value="{{ values.get('applicant_email', '') }}"
+          autocomplete="email"
+          required>
+      </div>
+
+      <div class="field-group field-group--checkbox">
+        <input
+          type="checkbox"
+          id="certify"
+          name="certify"
+          value="true"
+          {% if values.get('certify') %}checked{% endif %}
+          required>
+        <label for="certify">
+          I certify that all information provided in this application is true and accurate
+          to the best of my knowledge. <span class="req">*</span>
+        </label>
+      </div>
+    </fieldset>
+
+    <div class="form-actions">
+      <a href="/form/step/2" class="btn btn-secondary">← Back</a>
+      <button type="submit" class="btn btn-primary">Review Application →</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

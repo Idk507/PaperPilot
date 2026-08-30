@@ -1,0 +1,386 @@
+/* PaperPilot — style.css
+   Minimal but respectable. No framework. Mobile-first.
+   Includes stubs for WebMCP declarative CSS pseudo-classes. */
+
+/* ------------------------------------------------------------------ Reset */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; scroll-behavior: smooth; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #f8f9fa;
+  color: #1a1a2e;
+  line-height: 1.6;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ------------------------------------------------------------------ Layout */
+.container { max-width: 900px; margin: 0 auto; padding: 0 1.25rem; }
+.site-main  { flex: 1; padding: 2rem 0; }
+
+/* ------------------------------------------------------------------ Header */
+.site-header {
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.site-header .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: .75rem;
+  padding-bottom: .75rem;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  text-decoration: none;
+  color: #1a1a2e;
+  font-weight: 700;
+  font-size: 1.15rem;
+}
+.logo-icon { font-size: 1.4rem; }
+.site-nav a {
+  text-decoration: none;
+  color: #4a5568;
+  margin-left: 1.25rem;
+  font-size: .95rem;
+}
+.site-nav a:hover { color: #2563eb; }
+
+/* ------------------------------------------------------------------ Footer */
+.site-footer {
+  background: #1a1a2e;
+  color: #a0aec0;
+  text-align: center;
+  padding: 1.25rem 0;
+  font-size: .85rem;
+}
+.site-footer a { color: #63b3ed; text-decoration: none; }
+.site-footer a:hover { text-decoration: underline; }
+
+/* ------------------------------------------------------------------ Buttons */
+.btn {
+  display: inline-block;
+  padding: .55rem 1.2rem;
+  border-radius: 6px;
+  font-size: .95rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .15s, opacity .15s;
+}
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn-primary  { background: #2563eb; color: #fff; }
+.btn-primary:hover:not(:disabled)  { background: #1d4ed8; }
+.btn-secondary{ background: #e2e8f0; color: #1a1a2e; }
+.btn-secondary:hover { background: #cbd5e0; }
+.btn-lg       { padding: .75rem 2rem; font-size: 1.05rem; }
+.btn-sm       { padding: .35rem .85rem; font-size: .85rem; }
+.btn-xs       { padding: .2rem .6rem; font-size: .78rem; }
+.btn-accept   { background: #10b981; color: #fff; }
+.btn-accept:hover { background: #059669; }
+.btn-reject   { background: #ef4444; color: #fff; }
+.btn-reject:hover { background: #dc2626; }
+
+/* ------------------------------------------------------------------ Hero */
+.hero {
+  text-align: center;
+  padding: 3.5rem 1rem 3rem;
+}
+.hero-badge {
+  display: inline-block;
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+  border-radius: 99px;
+  padding: .25rem .85rem;
+  font-size: .82rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+  margin-bottom: 1.25rem;
+}
+.hero h1 {
+  font-size: clamp(1.8rem, 5vw, 3rem);
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 1rem;
+}
+.accent { color: #2563eb; }
+.hero-sub {
+  max-width: 580px;
+  margin: 0 auto 1.75rem;
+  color: #4a5568;
+  font-size: 1.05rem;
+}
+.hero-note {
+  margin-top: .75rem;
+  font-size: .82rem;
+  color: #718096;
+}
+
+/* ------------------------------------------------------------------ How it works */
+.how-it-works { padding: 2.5rem 0; }
+.how-it-works h2, .webmcp-note h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+}
+.step {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1.5rem;
+}
+.step-num {
+  width: 2rem;
+  height: 2rem;
+  background: #2563eb;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  margin-bottom: .75rem;
+}
+.step h3 { font-size: 1rem; font-weight: 600; margin-bottom: .4rem; }
+.step p  { font-size: .9rem; color: #4a5568; }
+
+/* ------------------------------------------------------------------ WebMCP note */
+.webmcp-note {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  padding: 1.75rem 2rem;
+  margin-top: 2rem;
+}
+.webmcp-note p { color: #1e40af; margin-bottom: .75rem; }
+.webmcp-note p:last-child { margin-bottom: 0; }
+.webmcp-note a { color: #1d4ed8; font-weight: 600; }
+
+/* ------------------------------------------------------------------ Form shell */
+.form-shell {
+  max-width: 680px;
+  margin: 0 auto;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 2rem 2.5rem;
+}
+@media (max-width: 640px) {
+  .form-shell { padding: 1.5rem 1rem; }
+}
+.form-title { font-size: 1.4rem; font-weight: 700; margin-bottom: .4rem; }
+.form-desc  { color: #4a5568; margin-bottom: 1.5rem; font-size: .95rem; }
+
+/* ------------------------------------------------------------------ Progress bar */
+.form-progress {
+  display: flex;
+  gap: .5rem;
+  margin-bottom: 1.75rem;
+  flex-wrap: wrap;
+}
+.progress-step {
+  flex: 1;
+  text-align: center;
+  padding: .4rem .5rem;
+  border-radius: 6px;
+  font-size: .82rem;
+  font-weight: 500;
+  background: #f1f5f9;
+  color: #94a3b8;
+  border: 1px solid #e2e8f0;
+}
+.progress-step.active {
+  background: #eff6ff;
+  color: #2563eb;
+  border-color: #93c5fd;
+  font-weight: 600;
+}
+.progress-step.done {
+  background: #f0fdf4;
+  color: #16a34a;
+  border-color: #86efac;
+}
+
+/* ------------------------------------------------------------------ Field groups */
+.field-group { margin-bottom: 1.25rem; }
+.field-group label {
+  display: block;
+  font-size: .9rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: .35rem;
+}
+.field-group input[type="text"],
+.field-group input[type="number"],
+.field-group input[type="email"],
+.field-group select,
+.field-group textarea {
+  width: 100%;
+  padding: .55rem .85rem;
+  border: 1.5px solid #d1d5db;
+  border-radius: 7px;
+  font-size: .95rem;
+  background: #fff;
+  transition: border-color .15s, box-shadow .15s;
+  color: #1a1a2e;
+}
+.field-group input:focus,
+.field-group select:focus,
+.field-group textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+}
+.field-group textarea { resize: vertical; }
+.field-group--checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: .6rem;
+}
+.field-group--checkbox input[type="checkbox"] { margin-top: .2rem; flex-shrink: 0; }
+.field-group--checkbox label { font-weight: 400; color: #374151; }
+.field-hint { font-size: .8rem; color: #6b7280; margin-top: .3rem; }
+.req { color: #ef4444; }
+.optional { color: #9ca3af; font-weight: 400; font-size: .85rem; }
+.fieldset { border: 1px solid #e2e8f0; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem; }
+.fieldset legend { font-weight: 600; padding: 0 .5rem; font-size: .95rem; }
+
+/* ------------------------------------------------------------------ Form actions */
+.form-actions {
+  display: flex;
+  gap: .75rem;
+  margin-top: 1.75rem;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+/* ------------------------------------------------------------------ Alerts */
+.alert {
+  padding: .85rem 1.1rem;
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+  font-size: .9rem;
+}
+.alert ul { padding-left: 1.2rem; }
+.alert li { margin-bottom: .2rem; }
+.alert-error { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+.alert-success { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+
+/* ------------------------------------------------------------------ Upload status */
+.upload-status { font-size: .82rem; margin-top: .3rem; }
+.upload-ok { color: #16a34a; }
+
+/* ------------------------------------------------------------------ Review page */
+.review-section { margin-bottom: 2rem; }
+.review-section h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: .75rem;
+  padding-bottom: .35rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+.review-table { display: flex; flex-direction: column; gap: .5rem; }
+.review-row {
+  display: flex;
+  align-items: flex-start;
+  gap: .75rem;
+  padding: .5rem .75rem;
+  border-radius: 7px;
+  background: #f8f9fa;
+}
+.review-row--proposed {
+  background: #fefce8;
+  border: 1.5px solid #fde047;
+}
+.review-label {
+  min-width: 180px;
+  font-size: .85rem;
+  font-weight: 600;
+  color: #374151;
+  flex-shrink: 0;
+}
+.review-value { flex: 1; font-size: .9rem; color: #1a1a2e; }
+.current-value { color: #9ca3af; text-decoration: line-through; }
+.arrow { color: #6b7280; margin: 0 .3rem; }
+.proposed-value { color: #1e40af; font-weight: 500; }
+.agent-badge {
+  display: inline-block;
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+  border-radius: 99px;
+  padding: .15rem .65rem;
+  font-size: .8rem;
+  font-weight: 600;
+  margin-left: .5rem;
+}
+.agent-badge-sm {
+  display: inline-block;
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-radius: 4px;
+  padding: .1rem .4rem;
+  font-size: .7rem;
+  font-weight: 600;
+  margin-left: .4rem;
+  vertical-align: middle;
+}
+.review-actions { display: flex; gap: .35rem; flex-shrink: 0; }
+.diff-banner {
+  background: #fefce8;
+  border: 1px solid #fde047;
+  border-radius: 8px;
+  padding: .85rem 1rem;
+  margin-bottom: 1.25rem;
+  font-size: .9rem;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+
+/* ------------------------------------------------------------------ Thank you */
+.thank-you {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+.thank-you-icon { font-size: 3.5rem; margin-bottom: 1rem; }
+.thank-you h1 { font-size: 2rem; font-weight: 800; margin-bottom: .75rem; }
+.thank-you .ref { font-size: .85rem; color: #6b7280; margin: .75rem 0 1.5rem; }
+
+/* ------------------------------------------------------------------ WebMCP declarative CSS pseudo-classes
+   Spec-defined: applied by the browser when an agent activates/fills a form.
+   :tool-form-active → applied to the <form> element
+   :tool-submit-active → applied to the submit <button> or <input[type=submit]>
+*/
+form:tool-form-active {
+  outline: 2px dashed #3b82f6;
+  outline-offset: 4px;
+  background: #eff6ff;
+  transition: background .2s;
+}
+button:tool-submit-active,
+input[type="submit"]:tool-submit-active {
+  outline: 2px dashed #f59e0b;
+  outline-offset: 2px;
+  animation: pulse-submit 1s ease-in-out infinite;
+}
+@keyframes pulse-submit {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,.4); }
+  50%       { box-shadow: 0 0 0 6px rgba(245,158,11,0); }
+}
