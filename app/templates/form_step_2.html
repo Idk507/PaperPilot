@@ -97,6 +97,7 @@
       <a href="/form/" class="btn btn-secondary">← Back</a>
       <button type="submit" class="btn btn-primary">Continue to Step 3 →</button>
     </div>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
   </form>
 </div>
 {% endblock %}
@@ -146,3 +147,4 @@
 }());
 </script>
 {% endblock %}
+

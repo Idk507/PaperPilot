@@ -1,8 +1,4 @@
-"""FastAPI application entry point.
-
-Mounts all routers and static files. Creates the SQLite database tables on
-startup. Serves Jinja2 templates for the human-facing form UI.
-"""
+"""FastAPI application entry point."""
 
 from __future__ import annotations
 
@@ -12,26 +8,24 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from sqlmodel import SQLModel
 
-# ---------------------------------------------------------------------------
-# Engine import must happen after all table models are imported above.
-# ---------------------------------------------------------------------------
-from sqlmodel import SQLModel, create_engine
-
-from app.db import (  # noqa: F401 — ensure tables register
+import app.settings
+from app.db import (  # noqa: F401 — ensures all tables are registered before create_all
+    Document,
     FieldValue,
-    Session,
+    FormSession,
     ToolCallLog,
+    engine,
 )
 from app.routers import audit, documents, eligibility, explain, form
-
-DATABASE_URL = "sqlite:///./paperpilot.db"
-engine = create_engine(DATABASE_URL, echo=False, connect_args={"check_same_thread": False})
+from app.settings import UPLOADS_DIR
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     SQLModel.metadata.create_all(engine)
+    UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
     yield
 
 
@@ -42,15 +36,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# ---------------------------------------------------------------------------
-# Static files and templates
-# ---------------------------------------------------------------------------
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
 
-# ---------------------------------------------------------------------------
-# Routers
-# ---------------------------------------------------------------------------
 app.include_router(form.router)
 app.include_router(eligibility.router)
 app.include_router(documents.router)
@@ -58,10 +46,6 @@ app.include_router(explain.router)
 app.include_router(audit.router)
 
 
-# ---------------------------------------------------------------------------
-# Root — redirect into the form
-# ---------------------------------------------------------------------------
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
-    # Starlette 1.x API: request is the first positional argument
     return templates.TemplateResponse(request, "home.html")

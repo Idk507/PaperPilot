@@ -1,0 +1,18 @@
+[project]
+name = "paperpilot"
+version = "0.1.0"
+requires-python = ">=3.11"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+# B008: Depends() in defaults is the canonical FastAPI pattern — ignore it.
+# BLE001: broad except is intentional in AI client (graceful degradation).
+# E712: SQLAlchemy/SQLModel where-clause syntax uses == True/False — correct.
+extend-ignore = ["B008", "BLE001", "E712", "E501"]
+select = ["E", "F", "I", "UP", "B", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]   # assert is fine in tests
