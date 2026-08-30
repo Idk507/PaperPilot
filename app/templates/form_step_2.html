@@ -1,150 +1,156 @@
 {% extends "base.html" %}
 {% block title %}Step 2 — Financial Info{% endblock %}
 {% block content %}
-<div class="form-shell">
-  <div class="form-progress">
-    <div class="progress-step done">1 Business Info</div>
-    <div class="progress-step active">2 Financials</div>
-    <div class="progress-step">3 Documents</div>
+<div class="form-page">
+  <div class="form-layout animate-in">
+
+    <aside class="step-sidebar">
+      <p class="step-sidebar-title">Application</p>
+      <div class="step-nav">
+        <div class="step-nav-item done">
+          <span class="step-nav-num">✓</span>
+          <span class="step-nav-text">
+            <span class="step-nav-label">Business Info</span>
+          </span>
+        </div>
+        <div class="step-nav-item active">
+          <span class="step-nav-num">2</span>
+          <span class="step-nav-text">
+            <span class="step-nav-label">Financials</span>
+          </span>
+        </div>
+        <div class="step-nav-item">
+          <span class="step-nav-num">3</span>
+          <span class="step-nav-text">
+            <span class="step-nav-label">Documents</span>
+          </span>
+        </div>
+      </div>
+      {% include "_sidebar_stats.html" %}
+      <div class="sidebar-dashboard-link">
+        <a href="/dashboard" class="btn btn-ghost btn-sm">View Dashboard →</a>
+      </div>
+    </aside>
+
+    <div>
+      {% if errors %}
+      <div class="alert alert-error" role="alert">
+        <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+      </div>
+      {% endif %}
+
+      <div class="form-card">
+        <h1 class="form-card-title">Financial Information</h1>
+        <p class="form-card-sub">Help us understand your business's financial situation. Fields marked <span class="req">*</span> are required.</p>
+
+        <form
+          id="step2-form"
+          method="post"
+          action="/form/step/2"
+          toolname="submit_fin_details"
+          tooldescription="SAVE annual revenue, employee count, revenue drop %, and use of funds. Does not change the page. After success, immediately call submit_applicant if the user also gave a name and email. Do NOT use propose_fields."
+          novalidate>
+
+          <div class="field-group">
+            <label for="annual_revenue">Annual Gross Revenue (USD) <span class="req">*</span></label>
+            <input
+              type="number"
+              id="annual_revenue"
+              name="annual_revenue"
+              value="{{ values.get('annual_revenue', '') }}"
+              min="0"
+              step="1"
+              required
+              toolparamdescription="Most recent annual gross revenue in USD. Must be 5 million or less to qualify."
+              placeholder="e.g. 250000">
+            <p class="field-hint">Maximum $5,000,000 to qualify for this grant.</p>
+          </div>
+
+          <div class="field-group">
+            <label for="employee_count">Full-Time Employees <span class="req">*</span></label>
+            <input
+              type="number"
+              id="employee_count"
+              name="employee_count"
+              value="{{ values.get('employee_count', '') }}"
+              min="0"
+              max="500"
+              required
+              toolparamdescription="Number of full-time employees as of the application date. Maximum 500 to qualify."
+              placeholder="e.g. 5">
+          </div>
+
+          <div class="field-group">
+            <label for="revenue_drop_pct">Revenue Drop (%) <span class="req">*</span></label>
+            <input
+              type="number"
+              id="revenue_drop_pct"
+              name="revenue_drop_pct"
+              value="{{ values.get('revenue_drop_pct', '') }}"
+              min="0"
+              max="100"
+              step="0.1"
+              required
+              toolparamdescription="Percentage revenue declined compared to prior year. Minimum 15% required to qualify."
+              placeholder="e.g. 35">
+            <p class="field-hint">Must be at least 15% to qualify.</p>
+          </div>
+
+          <div class="field-group">
+            <label for="use_of_funds">Primary Use of Funds <span class="req">*</span></label>
+            <select
+              id="use_of_funds"
+              name="use_of_funds"
+              required
+              toolparamdescription="How the grant funds will primarily be used.">
+              <option value="">— Select —</option>
+              <option value="payroll"        {% if values.get('use_of_funds')=='payroll' %}selected{% endif %}>Payroll</option>
+              <option value="rent_utilities" {% if values.get('use_of_funds')=='rent_utilities' %}selected{% endif %}>Rent / Utilities</option>
+              <option value="equipment"      {% if values.get('use_of_funds')=='equipment' %}selected{% endif %}>Equipment</option>
+              <option value="inventory"      {% if values.get('use_of_funds')=='inventory' %}selected{% endif %}>Inventory</option>
+              <option value="other"          {% if values.get('use_of_funds')=='other' %}selected{% endif %}>Other</option>
+            </select>
+          </div>
+
+          <div class="field-group" id="detail-group" {% if values.get('use_of_funds') != 'other' %}style="display:none"{% endif %}>
+            <label for="use_of_funds_detail">Describe Use of Funds <span class="req">*</span></label>
+            <textarea
+              id="use_of_funds_detail"
+              name="use_of_funds_detail"
+              rows="3"
+              maxlength="500"
+              toolparamdescription="Required when use of funds is Other. Plain-language description, max 500 characters."
+              placeholder="Briefly describe how you plan to use the grant funds…">{{ values.get('use_of_funds_detail', '') }}</textarea>
+          </div>
+
+          <div class="form-actions">
+            <a href="/form/" class="btn btn-secondary">← Back</a>
+            <div class="form-actions-right">
+              <button type="submit" class="btn btn-primary">Continue to Step 3 →</button>
+            </div>
+          </div>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        </form>
+      </div>
+    </div>
+
   </div>
-  <h2 class="form-title">Step 2 — Financial Information</h2>
-  <p class="form-desc">Help us understand your business's financial situation.
-     Fields marked <span class="req">*</span> are required.</p>
-
-  {% if errors %}
-  <div class="alert alert-error" role="alert">
-    <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
-  </div>
-  {% endif %}
-
-  <form
-    id="step2-form"
-    method="post"
-    action="/form/step/2"
-    toolname="submit_fin_details"
-    tooldescription="Submit Step 2 financials: annual revenue, employee count, revenue drop %, and use of funds."
-    novalidate>
-
-    <div class="field-group">
-      <label for="annual_revenue">Annual Gross Revenue (USD) <span class="req">*</span></label>
-      <input
-        type="number"
-        id="annual_revenue"
-        name="annual_revenue"
-        value="{{ values.get('annual_revenue', '') }}"
-        min="0"
-        step="1"
-        required
-        toolparamdescription="Most recent annual gross revenue in USD. Must be 5 million or less to qualify.">
-      <p class="field-hint">Maximum $5,000,000 to qualify for this grant.</p>
-    </div>
-
-    <div class="field-group">
-      <label for="employee_count">Full-Time Employees <span class="req">*</span></label>
-      <input
-        type="number"
-        id="employee_count"
-        name="employee_count"
-        value="{{ values.get('employee_count', '') }}"
-        min="0"
-        max="500"
-        required
-        toolparamdescription="Number of full-time employees as of the application date. Maximum 500 to qualify.">
-    </div>
-
-    <div class="field-group">
-      <label for="revenue_drop_pct">Revenue Drop (%) <span class="req">*</span></label>
-      <input
-        type="number"
-        id="revenue_drop_pct"
-        name="revenue_drop_pct"
-        value="{{ values.get('revenue_drop_pct', '') }}"
-        min="0"
-        max="100"
-        step="0.1"
-        required
-        toolparamdescription="Percentage revenue declined compared to prior year. Minimum 15% required to qualify.">
-      <p class="field-hint">Must be at least 15% to qualify.</p>
-    </div>
-
-    <div class="field-group">
-      <label for="use_of_funds">Primary Use of Funds <span class="req">*</span></label>
-      <select
-        id="use_of_funds"
-        name="use_of_funds"
-        required
-        toolparamdescription="How the grant funds will primarily be used.">
-        <option value="">— Select —</option>
-        <option value="payroll"          {% if values.get('use_of_funds')=='payroll' %}selected{% endif %}>Payroll</option>
-        <option value="rent_utilities"   {% if values.get('use_of_funds')=='rent_utilities' %}selected{% endif %}>Rent / Utilities</option>
-        <option value="equipment"        {% if values.get('use_of_funds')=='equipment' %}selected{% endif %}>Equipment</option>
-        <option value="inventory"        {% if values.get('use_of_funds')=='inventory' %}selected{% endif %}>Inventory</option>
-        <option value="other"            {% if values.get('use_of_funds')=='other' %}selected{% endif %}>Other</option>
-      </select>
-    </div>
-
-    <div class="field-group" id="detail-group" {% if values.get('use_of_funds') != 'other' %}style="display:none"{% endif %}>
-      <label for="use_of_funds_detail">Describe Use of Funds <span class="req">*</span></label>
-      <textarea
-        id="use_of_funds_detail"
-        name="use_of_funds_detail"
-        rows="3"
-        maxlength="500"
-        toolparamdescription="Required when use of funds is Other. Plain-language description, max 500 characters.">{{ values.get('use_of_funds_detail', '') }}</textarea>
-    </div>
-
-    <div class="form-actions">
-      <a href="/form/" class="btn btn-secondary">← Back</a>
-      <button type="submit" class="btn btn-primary">Continue to Step 3 →</button>
-    </div>
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-  </form>
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
 (function () {
-  const form = document.getElementById('step2-form');
   const fundsSelect = document.getElementById('use_of_funds');
   const detailGroup = document.getElementById('detail-group');
-
-  // Show/hide "describe" field based on use_of_funds selection
   if (fundsSelect && detailGroup) {
     fundsSelect.addEventListener('change', function () {
       detailGroup.style.display = this.value === 'other' ? '' : 'none';
     });
   }
-
-  if (!form) return;
-
-  form.addEventListener('submit', function (e) {
-    if (!e.agentInvoked) return;
-    e.preventDefault();
-    e.respondWith(
-      fetch(form.action, { method: 'POST', body: new FormData(form) })
-        .then(function (r) { return r.json(); })
-        .catch(function (err) { return { error: err.message }; })
-    );
-    fetch('/api/audit/log', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tool_name: 'submit_fin_details', input_json: '{}', outcome: 'success' })
-    }).catch(function () {});
-  });
-
-  window.addEventListener('toolactivated', function (e) {
-    if (e.toolName === 'submit_fin_details') {
-      console.log('[PaperPilot] Agent activated submit_fin_details');
-    }
-  });
-
-  window.addEventListener('toolcancel', function (e) {
-    if (e.toolName === 'submit_fin_details') {
-      console.log('[PaperPilot] Agent cancelled submit_fin_details');
-    }
-  });
+  if (window.paperpilotBindAgentForm) {
+    window.paperpilotBindAgentForm(document.getElementById('step2-form'));
+  }
 }());
 </script>
 {% endblock %}
-

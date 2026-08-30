@@ -4,7 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}PaperPilot{% endblock %} — Small Business Recovery Grant</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,200;0,9..144,400;0,9..144,700;0,9..144,800;1,9..144,400;1,9..144,700&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css?v=20260830d">
 </head>
 <body>
   <header class="site-header">
@@ -14,8 +17,9 @@
         <span class="logo-text">PaperPilot</span>
       </a>
       <nav class="site-nav">
-        <a href="/form/">Apply Now</a>
+        <a href="/dashboard">Dashboard</a>
         <a href="#about">About</a>
+        <a href="/form/" class="nav-cta">Apply Now →</a>
       </nav>
     </div>
   </header>
@@ -28,17 +32,16 @@
 
   <footer class="site-footer">
     <div class="container">
-      <p>PaperPilot — WebMCP-powered grant application assistant.</p>
-      <p>
+      <span class="footer-brand">PaperPilot</span>
+      <div class="footer-links">
         <a href="https://github.com/webmachinelearning/webmcp" target="_blank" rel="noopener">WebMCP Spec</a>
-        &middot;
-        <a href="https://webmcp.devpost.com/" target="_blank" rel="noopener">The WebMCP Challenge</a>
-      </p>
+        <a href="https://developer.chrome.com/docs/ai/webmcp" target="_blank" rel="noopener">Chrome Docs</a>
+        <a href="https://webmcp.devpost.com/" target="_blank" rel="noopener">The Challenge</a>
+      </div>
     </div>
   </footer>
 
-  <script src="/static/webmcp-tools.js" defer></script>
+  <script src="/static/webmcp-tools.js?v=20260830d" defer></script>
   {% block extra_scripts %}{% endblock %}
 </body>
 </html>
-

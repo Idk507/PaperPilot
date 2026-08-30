@@ -1,0 +1,27 @@
+<div class="sidebar-stats">
+  <div class="sidebar-stat">
+    <div class="sidebar-stat-label">Completion</div>
+    <div class="completion-ring-wrap sidebar-ring">
+      <svg class="completion-ring" viewBox="0 0 80 80" width="64" height="64">
+        <circle cx="40" cy="40" r="32" class="ring-track"/>
+        <circle cx="40" cy="40" r="32" class="ring-fill"
+          style="stroke-dashoffset: calc(201 - (201 * {{ checklist.completion_pct|default(0) }}) / 100)"/>
+      </svg>
+      <span class="completion-pct">{{ checklist.completion_pct|default(0) }}%</span>
+    </div>
+    <p class="completion-detail">{{ checklist.total_filled|default(0) }} / {{ checklist.total_required|default(11) }} required</p>
+  </div>
+  <div class="sidebar-stat">
+    <div class="sidebar-stat-label">Award estimate</div>
+    {% if estimate and estimate.eligible == true %}
+      <div class="sidebar-estimate">${{ "{:,}".format(estimate.range_low) }}–${{ "{:,}".format(estimate.range_high) }}</div>
+      <div class="estimate-tier">{{ estimate.tier_label }}</div>
+    {% elif estimate and estimate.eligible == false %}
+      <div class="sidebar-estimate sidebar-estimate--zero">$0</div>
+      <p class="completion-detail">Not eligible on current numbers</p>
+    {% else %}
+      <div class="sidebar-estimate sidebar-estimate--pending">—</div>
+      <p class="completion-detail">Fill financials to estimate</p>
+    {% endif %}
+  </div>
+</div>

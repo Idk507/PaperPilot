@@ -1,13 +1,16 @@
 {% extends "base.html" %}
 {% block title %}Application Submitted{% endblock %}
 {% block content %}
-<div class="thank-you">
-  <div class="thank-you-icon">✅</div>
-  <h1>Application Submitted!</h1>
+<div class="thank-you-page animate-in">
+  <div class="thank-you-mark">✓</div>
+  <h1>Application<br>Submitted.</h1>
   <p>Thank you, <strong>{{ applicant_name }}</strong>. Your Small Business Recovery Grant
-     application has been received.</p>
-  <p class="ref">Reference ID: <code>{{ session_id }}</code></p>
-  <a href="/" class="btn btn-secondary">Return Home</a>
+     application has been received and is under review.</p>
+  <p>You'll hear from us at the email address you provided. Keep this reference ID safe.</p>
+  <div class="ref-box">
+    <span class="ref-label">Ref</span>
+    <span class="ref-value">{{ session_id }}</span>
+  </div>
+  <a href="/" class="btn btn-secondary">← Back to Home</a>
 </div>
 {% endblock %}
-

@@ -1,4 +1,4 @@
-"""Form router — Phase 1: complete human-only form flow.
+"""Form router — Phase 1-4: complete form flow + agent propose/save tools.
 
 Routes
 ------
@@ -7,14 +7,14 @@ GET  /form/step/{n}          → render step n with existing values
 POST /form/step/{n}          → validate + save fields, PRG redirect
 GET  /form/review            → review all committed + pending fields
 POST /form/submit            → finalise submission
-POST /form/commit/{field}    → accept one agent proposal    (Phase 4)
-POST /form/reject/{field}    → reject one agent proposal    (Phase 4)
-POST /form/commit_all        → accept all proposals         (Phase 4)
-POST /form/reject_all        → reject all proposals         (Phase 4)
+POST /form/commit/{field}    → accept one agent proposal
+POST /form/reject/{field}    → reject one agent proposal
+POST /form/commit_all        → accept all proposals
+POST /form/reject_all        → reject all proposals
 
-API routes (used by WebMCP tools and declarative form auditing)
-POST /api/form/propose       → agent propose values          (Phase 4)
-POST /api/form/save          → agent save-progress           (Phase 4)
+API routes (called by WebMCP tools)
+POST /api/form/propose       → agent propose uncommitted values
+POST /api/form/save          → agent save-progress
 """
 
 from __future__ import annotations
@@ -23,21 +23,28 @@ import re
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, UploadFile
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session as DbSession
 from sqlmodel import select
 
 from app.db import Document, FieldValue, FormSession, get_db
+from app.services.hooks import (
+    RateLimitExceeded,
+    assert_same_origin,
+    post_execute_hook,
+    pre_execute_hook,
+)
 from app.services.session_utils import (
     COOKIE_MAX_AGE,
     COOKIE_NAME,
     generate_csrf_token,
     verify_csrf_token,
 )
-from app.settings import UPLOADS_DIR
+from app.settings import COOKIE_SECURE, UPLOADS_DIR
 
 router = APIRouter(prefix="/form", tags=["form"])
+api_router = APIRouter(prefix="/api/form", tags=["form-api"])
 templates = Jinja2Templates(directory="app/templates")
 
 # ── Human-readable labels used in review.html ───────────────────────────────
@@ -72,6 +79,59 @@ MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
+
+def _prefers_json(request: Request) -> bool:
+    """True when a WebMCP agent fetch() asks for JSON instead of an HTML redirect."""
+    accept = (request.headers.get("accept") or "").lower()
+    return "application/json" in accept
+
+
+def _step_result(
+    request: Request,
+    html_fallback,
+    *,
+    ok: bool,
+    next_url: str | None = None,
+    errors: list[str] | None = None,
+    message: str = "",
+    next_tool_hint: str | None = None,
+):
+    """Return JSON for agent fetch() calls; keep HTML/redirects for humans."""
+    if _prefers_json(request):
+        body: dict = {"ok": ok, "message": message}
+        if next_url:
+            body["next"] = next_url
+        if next_tool_hint:
+            body["next_tool_hint"] = next_tool_hint
+        if errors:
+            body["errors"] = errors
+        return JSONResponse(body, status_code=200 if ok else 422)
+    return html_fallback
+
+
+def _csrf_or_reject(request: Request, csrf_token: str, session_id: str) -> JSONResponse | None:
+    if verify_csrf_token(csrf_token, session_id):
+        return None
+    if _prefers_json(request):
+        return JSONResponse({"ok": False, "error": "Invalid CSRF token."}, status_code=403)
+    raise HTTPException(status_code=403, detail="Invalid CSRF token.")
+
+
+def _progress_context(session_id: str, db: DbSession) -> dict:
+    """Completion % and award estimate for sidebar / review panels."""
+    from app.services.rules_engine import calculate_award_estimate, get_application_checklist
+
+    checklist = get_application_checklist(session_id, db)
+    values = _load_committed_values(session_id, db)
+    try:
+        revenue = float(values.get("annual_revenue") or 0) or None
+        drop = float(values.get("revenue_drop_pct") or 0) or None
+        emp = int(float(values.get("employee_count") or 0)) or None
+    except (ValueError, TypeError):
+        revenue = drop = emp = None
+    estimate = calculate_award_estimate(revenue, drop, emp)
+    return {"checklist": checklist, "estimate": estimate}
+
 
 def _get_or_create_session(
     request: Request, db: DbSession
@@ -179,6 +239,7 @@ def _render_step(
             "errors": errors,
             "csrf_token": generate_csrf_token(sess.id),
             "uploads": uploads,
+            **_progress_context(sess.id, db),
         },
     )
 
@@ -309,8 +370,11 @@ async def form_step_get(
 ):
     if step_num not in (1, 2, 3):
         raise HTTPException(status_code=404, detail="Invalid step.")
-    sess = _get_session_required(request, db)
-    return _render_step(request, sess, step_num, [], {}, db)
+    sess, is_new = _get_or_create_session(request, db)
+    response = _render_step(request, sess, step_num, [], {}, db)
+    if is_new:
+        _set_session_cookie(response, sess.id)
+    return response
 
 
 # ── POST step/1 ───────────────────────────────────────────────────────────────
@@ -327,9 +391,9 @@ async def form_step1_post(
     csrf_token: str = Form(default=""),
 ):
     sess = _get_session_required(request, db)
-
-    if not verify_csrf_token(csrf_token, sess.id):
-        raise HTTPException(status_code=403, detail="Invalid CSRF token.")
+    csrf_fail = _csrf_or_reject(request, csrf_token, sess.id)
+    if csrf_fail:
+        return csrf_fail
 
     data = {
         "business_name": business_name,
@@ -340,7 +404,13 @@ async def form_step1_post(
     }
     errors = _validate_step1(data)
     if errors:
-        return _render_step(request, sess, 1, errors, data, db)
+        return _step_result(
+            request,
+            _render_step(request, sess, 1, errors, data, db),
+            ok=False,
+            errors=errors,
+            message="Step 1 validation failed.",
+        )
 
     # Save committed values
     for field, value in data.items():
@@ -351,7 +421,14 @@ async def form_step1_post(
     db.add(sess)
     db.commit()
 
-    return RedirectResponse("/form/step/2", status_code=303)
+    return _step_result(
+        request,
+        RedirectResponse("/form/step/2", status_code=303),
+        ok=True,
+        next_url="/form/step/2",
+        message="Business details saved. Stay on this page and call submit_fin_details next if you have financials.",
+        next_tool_hint="Call submit_fin_details next if you have financials. Do not navigate yet.",
+    )
 
 
 # ── POST step/2 ───────────────────────────────────────────────────────────────
@@ -368,9 +445,9 @@ async def form_step2_post(
     csrf_token: str = Form(default=""),
 ):
     sess = _get_session_required(request, db)
-
-    if not verify_csrf_token(csrf_token, sess.id):
-        raise HTTPException(status_code=403, detail="Invalid CSRF token.")
+    csrf_fail = _csrf_or_reject(request, csrf_token, sess.id)
+    if csrf_fail:
+        return csrf_fail
 
     data = {
         "annual_revenue": annual_revenue,
@@ -381,7 +458,13 @@ async def form_step2_post(
     }
     errors = _validate_step2(data)
     if errors:
-        return _render_step(request, sess, 2, errors, data, db)
+        return _step_result(
+            request,
+            _render_step(request, sess, 2, errors, data, db),
+            ok=False,
+            errors=errors,
+            message="Step 2 validation failed.",
+        )
 
     for field, value in data.items():
         _upsert_field(sess.id, field, value.strip(), "human", True, db)
@@ -391,7 +474,14 @@ async def form_step2_post(
     db.add(sess)
     db.commit()
 
-    return RedirectResponse("/form/step/3", status_code=303)
+    return _step_result(
+        request,
+        RedirectResponse("/form/step/3", status_code=303),
+        ok=True,
+        next_url="/form/step/3",
+        message="Financials saved. Stay on this page and call submit_applicant next if you have name and email.",
+        next_tool_hint="Call submit_applicant next if you have name and email. Do not navigate yet.",
+    )
 
 
 # ── POST step/3 ───────────────────────────────────────────────────────────────
@@ -408,9 +498,9 @@ async def form_step3_post(
     bank_statement_doc: UploadFile | None = None,
 ):
     sess = _get_session_required(request, db)
-
-    if not verify_csrf_token(csrf_token, sess.id):
-        raise HTTPException(status_code=403, detail="Invalid CSRF token.")
+    csrf_fail = _csrf_or_reject(request, csrf_token, sess.id)
+    if csrf_fail:
+        return csrf_fail
 
     data = {
         "applicant_name": applicant_name,
@@ -422,8 +512,8 @@ async def form_step3_post(
     # Validate + save uploads (validation errors don't block progress)
     upload_errors = []
     for doc_type, upload_file in [
-        ("tax_return", tax_return_doc),
-        ("bank_statement", bank_statement_doc),
+        ("tax_return_doc", tax_return_doc),
+        ("bank_statement_doc", bank_statement_doc),
     ]:
         if not upload_file or not upload_file.filename:
             continue
@@ -433,7 +523,13 @@ async def form_step3_post(
 
     all_errors = errors + upload_errors
     if all_errors:
-        return _render_step(request, sess, 3, all_errors, data, db)
+        return _step_result(
+            request,
+            _render_step(request, sess, 3, all_errors, data, db),
+            ok=False,
+            errors=all_errors,
+            message="Step 3 validation failed.",
+        )
 
     for field, value in [
         ("applicant_name", applicant_name.strip()),
@@ -447,7 +543,14 @@ async def form_step3_post(
     db.add(sess)
     db.commit()
 
-    return RedirectResponse("/form/review", status_code=303)
+    return _step_result(
+        request,
+        RedirectResponse("/form/review", status_code=303),
+        ok=True,
+        next_url="/form/review",
+        message="Applicant details saved. Call go_to_step with step=review only after this.",
+        next_tool_hint="All sections saved. Call go_to_step with step=review only after this.",
+    )
 
 
 async def _save_upload(
@@ -502,6 +605,10 @@ async def form_review(request: Request, db: DbSession = Depends(get_db)):
     committed = _load_committed_values(sess.id, db)
     proposed = _load_proposed_values(sess.id, db)
 
+    # Uploaded documents (for the extract-from-doc UI)
+    docs = db.exec(select(Document).where(Document.session_id == sess.id)).all()
+    uploaded_docs = {d.doc_type: d.original_filename for d in docs}
+
     return templates.TemplateResponse(
         request,
         "review.html",
@@ -511,6 +618,8 @@ async def form_review(request: Request, db: DbSession = Depends(get_db)):
             "proposed_fields": list(proposed.keys()),
             "labels": FIELD_LABELS,
             "csrf_token": generate_csrf_token(sess.id),
+            "uploaded_docs": uploaded_docs,
+            **_progress_context(sess.id, db),
         },
     )
 
@@ -655,23 +764,247 @@ async def reject_all(
     return RedirectResponse("/form/review", status_code=303)
 
 
-# ── API: agent propose + save (Phase 4 full impl, stubs for now) ─────────────
+# ── Proposable fields — server-side allowlist (must match webmcp-tools.js inputSchema) ──
+PROPOSABLE_FIELDS: frozenset[str] = frozenset([
+    "business_name", "business_type", "year_founded", "state", "ein",
+    "annual_revenue", "employee_count", "revenue_drop_pct",
+    "use_of_funds", "use_of_funds_detail", "applicant_name", "applicant_email",
+])
 
-@router.post("/api/form/propose")
+
+def _validate_proposed_field(field_name: str, value: str) -> str | None:
+    """Validate a single proposed field. Returns error string or None.
+
+    Applies the same rules as human-typed input so agent proposals
+    can never bypass validation by taking the API path.
+    """
+    v = value.strip()
+
+    if field_name == "business_name":
+        if not v or not (2 <= len(v) <= 200):
+            return "business_name must be 2-200 characters."
+    elif field_name == "business_type":
+        if v not in {"sole_proprietor", "llc", "corporation", "nonprofit"}:
+            return "business_type must be sole_proprietor, llc, corporation, or nonprofit."
+    elif field_name == "year_founded":
+        try:
+            yr = int(v)
+            current_yr = datetime.now(tz=UTC).year
+            if not (1800 <= yr <= current_yr - 1):
+                return f"year_founded must be between 1800 and {current_yr - 1}."
+        except (ValueError, TypeError):
+            return "year_founded must be a valid 4-digit year."
+    elif field_name == "state":
+        if v not in VALID_STATES:
+            return "state must be a valid 2-letter US state abbreviation."
+    elif field_name == "ein":
+        if v and not re.match(r"^\d{2}-\d{7}$", v):
+            return "ein must be in XX-XXXXXXX format or empty."
+    elif field_name == "annual_revenue":
+        try:
+            if float(v) < 0:
+                return "annual_revenue must be non-negative."
+        except (ValueError, TypeError):
+            return "annual_revenue must be a number."
+    elif field_name == "employee_count":
+        try:
+            if int(float(v)) < 0:
+                return "employee_count must be non-negative."
+        except (ValueError, TypeError):
+            return "employee_count must be a whole number."
+    elif field_name == "revenue_drop_pct":
+        try:
+            drop = float(v)
+            if not (0 <= drop <= 100):
+                return "revenue_drop_pct must be between 0 and 100."
+        except (ValueError, TypeError):
+            return "revenue_drop_pct must be a number between 0 and 100."
+    elif field_name == "use_of_funds":
+        if v not in {"payroll", "rent_utilities", "equipment", "inventory", "other"}:
+            return "use_of_funds must be payroll, rent_utilities, equipment, inventory, or other."
+    elif field_name == "use_of_funds_detail":
+        if len(v) > 500:
+            return "use_of_funds_detail must be 500 characters or fewer."
+    elif field_name == "applicant_name":
+        if not v or len(v) > 200:
+            return "applicant_name must be 1-200 characters."
+    elif field_name == "applicant_email":
+        if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", v.lower()):
+            return "applicant_email must be a valid email address."
+    return None
+
+
+# ── Shared proposal-batch helper (ONE mutation path for propose + extract) ────
+
+def _apply_proposal_batch(
+    session_id: str,
+    fields: dict,
+    source: str,
+    db: DbSession,
+) -> tuple[list[str], list[dict]]:
+    """Validate and upsert a batch of proposed field values.
+
+    This is the single mutation path shared by propose_fields and extract_doc
+    (see ARCHITECTURE.md §Tool design). Only fields in PROPOSABLE_FIELDS that
+    pass _validate_proposed_field() are written.  committed is always False.
+    """
+    proposed: list[str] = []
+    skipped: list[dict] = []
+
+    for raw_field, raw_value in fields.items():
+        if raw_field not in PROPOSABLE_FIELDS:
+            skipped.append({"field": raw_field, "reason": "Unknown or non-proposable field."})
+            continue
+
+        str_value = str(raw_value).strip()
+        err = _validate_proposed_field(raw_field, str_value)
+        if err:
+            skipped.append({"field": raw_field, "reason": err})
+            continue
+
+        _upsert_field(session_id, raw_field, str_value, source, False, db)
+        proposed.append(raw_field)
+
+    db.commit()
+    return proposed, skipped
+
+
+# ── API: agent propose values ─────────────────────────────────────────────────
+
+@api_router.post("/propose")
 async def api_propose(request: Request, db: DbSession = Depends(get_db)):
-    """WebMCP tool backing endpoint for propose_fields. Phase 4 full impl."""
-    _get_session_required(request, db)
-    return {"proposed": [], "message": "Proposal endpoint — full implementation in Phase 4."}
+    """WebMCP backing endpoint for propose_fields tool.
 
-
-@router.post("/api/form/save")
-async def api_save(request: Request, db: DbSession = Depends(get_db)):
-    """WebMCP tool backing endpoint for save_progress."""
+    Validates each field name against the explicit allowlist and each value
+    through the same validators used for human input.
+    Writes FieldValue rows with committed=False, source='agent_proposed'.
+    NEVER writes committed=True rows — enforced here and in hooks.py.
+    """
     sess = _get_session_required(request, db)
+
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Request body must be valid JSON.") from None
+
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=422, detail="Body must be a JSON object of {field_name: value}.")
+
+    assert_same_origin(request)
+
+    try:
+        log_id = pre_execute_hook(sess.id, "propose_fields", body, db)
+    except RateLimitExceeded as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
+
+    proposed, skipped = _apply_proposal_batch(sess.id, body, "agent_proposed", db)
+
+    result = {
+        "proposed": proposed,
+        "skipped": skipped,
+        "message": f"{len(proposed)} field(s) proposed for review.",
+    }
+    post_execute_hook(log_id, result, "success", db)
+    return result
+
+
+# ── API: agent save progress ──────────────────────────────────────────────────
+
+@api_router.post("/save")
+async def api_save(request: Request, db: DbSession = Depends(get_db)):
+    """WebMCP backing endpoint for save_progress tool."""
+    sess = _get_session_required(request, db)
+    assert_same_origin(request)
+
+    try:
+        log_id = pre_execute_hook(sess.id, "save_progress", {}, db)
+    except RateLimitExceeded as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
+
     sess.updated_at = datetime.now(tz=UTC)
     db.add(sess)
     db.commit()
-    return {"ok": True, "message": "Progress saved."}
+
+    result = {"ok": True, "message": "Progress saved."}
+    post_execute_hook(log_id, result, "success", db)
+    return result
+
+
+_STEP_FIELDS = {
+    1: ("business_name", "business_type", "year_founded", "state", "ein"),
+    2: ("annual_revenue", "employee_count", "revenue_drop_pct", "use_of_funds", "use_of_funds_detail"),
+    3: ("applicant_name", "applicant_email", "certify"),
+}
+
+@api_router.post("/submit-step/{step_num}")
+async def api_submit_step(
+    step_num: int,
+    request: Request,
+    db: DbSession = Depends(get_db),
+):
+    """Commit a step from JSON so submit_* tools work on every page, not only the form URL."""
+    if step_num not in _STEP_FIELDS:
+        raise HTTPException(status_code=404, detail="Invalid step.")
+
+    sess = _get_session_required(request, db)
+    assert_same_origin(request)
+
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Request body must be valid JSON.") from None
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=422, detail="Body must be a JSON object.")
+
+    data = {k: str(body.get(k, "") or "").strip() for k in _STEP_FIELDS[step_num]}
+    if step_num == 1:
+        errors = _validate_step1(data)
+    elif step_num == 2:
+        errors = _validate_step2(data)
+    else:
+        errors = _validate_step3(data)
+
+    if errors:
+        return JSONResponse({"ok": False, "errors": errors, "message": f"Step {step_num} validation failed."}, 422)
+
+    try:
+        log_id = pre_execute_hook(sess.id, f"submit_step_{step_num}", data, db)
+    except RateLimitExceeded as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
+
+    for field, value in data.items():
+        if step_num == 3 and field == "certify":
+            value = "true"
+        if step_num == 3 and field == "applicant_email":
+            value = value.lower()
+        _upsert_field(sess.id, field, value, "agent_submitted", True, db)
+
+    if step_num == 3:
+        sess.status = "review"
+    else:
+        sess.current_step = max(sess.current_step, step_num + 1)
+    sess.updated_at = datetime.now(tz=UTC)
+    db.add(sess)
+    db.commit()
+
+    next_hint = {
+        1: "Call submit_fin_details next if you have financials. Do not navigate yet.",
+        2: "Call submit_applicant next if you have name and email. Do not navigate yet.",
+        3: "All sections saved. The review page will open in a few seconds.",
+    }[step_num]
+    stay = " Stay on this page and call the next save tool."
+    result = {
+        "ok": True,
+        "saved": True,
+        "next_tool_hint": next_hint,
+        "message": (
+            f"Section {step_num} saved. The review page will open shortly."
+            if step_num == 3
+            else f"Section {step_num} saved.{stay}"
+        ),
+    }
+    post_execute_hook(log_id, result, "success", db)
+    return result
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -682,6 +1015,7 @@ def _set_session_cookie(response, session_id: str) -> None:
         session_id,
         httponly=True,
         samesite="lax",
+        secure=COOKIE_SECURE,
         max_age=COOKIE_MAX_AGE,
     )
 

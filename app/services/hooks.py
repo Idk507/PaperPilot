@@ -16,6 +16,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from fastapi import Request
     from sqlmodel import Session as DbSession
 
 from app.db import ToolCallLog
@@ -28,6 +29,31 @@ _call_log: dict[str, deque] = defaultdict(deque)
 
 class RateLimitExceeded(Exception):
     pass
+
+
+def assert_same_origin(request: Request) -> None:
+    """Defence-in-depth: reject requests whose Origin does not match the Host.
+
+    SameSite=Lax already prevents cross-site cookie attachment on most POST
+    requests. This check adds a belt-and-suspenders layer for JSON API
+    endpoints called from webmcp-tools.js fetch() calls.
+
+    Allows requests with no Origin header (server-to-server / curl / tests).
+    """
+    from fastapi import HTTPException
+
+    origin = request.headers.get("origin")
+    if origin is None:
+        return  # no origin = not a browser cross-site call
+
+    host = request.headers.get("host", "")
+    # Normalise: strip scheme and trailing slash from origin
+    origin_host = origin.split("://", 1)[-1].rstrip("/")
+    if origin_host != host:
+        raise HTTPException(
+            status_code=403,
+            detail="Cross-origin request rejected.",
+        )
 
 
 def _check_rate_limit(session_id: str, tool_name: str) -> None:
@@ -76,7 +102,13 @@ def post_execute_hook(
     outcome: str,
     db: DbSession,
 ) -> Any:
-    """Close the audit log row and return sanitized output."""
+    """Close the audit log row and return sanitized output.
+
+    Also enforces that no tool result ever claims committed=True status —
+    tool calls must NEVER directly commit field values.
+    """
+    result = _enforce_no_committed_outputs(result)
+
     try:
         entry = db.get(ToolCallLog, int(log_id))
         if entry:
@@ -88,6 +120,34 @@ def post_execute_hook(
         pass
 
     return sanitize_output(result)
+
+
+def _enforce_no_committed_outputs(result: Any) -> Any:
+    """Security: ensure tool results never carry committed=True.
+
+    Defence-in-depth — propose endpoint already writes committed=False,
+    but this catches any future accidental regression.
+    """
+    import logging as _log_mod
+    _logger = _log_mod.getLogger(__name__)
+
+    if isinstance(result, dict):
+        if result.get("committed") is True:
+            _logger.error(
+                "SECURITY: tool result had committed=True — stripped. "
+                "Tool calls must NEVER directly commit field values."
+            )
+            result = {k: v for k, v in result.items() if k != "committed"}
+        for key, val in result.items():
+            if isinstance(val, list):
+                cleaned = []
+                for item in val:
+                    if isinstance(item, dict) and item.get("committed") is True:
+                        _logger.error("SECURITY: nested committed=True in '%s' — stripped.", key)
+                        item = {k: v for k, v in item.items() if k != "committed"}
+                    cleaned.append(item)
+                result[key] = cleaned
+    return result
 
 
 def sanitize_output(result: Any) -> Any:

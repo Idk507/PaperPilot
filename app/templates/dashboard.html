@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% block title %}Application Dashboard{% endblock %}
+{% block content %}
+<div class="dashboard-page animate-in">
+
+  {# ── Header ── #}
+  <div class="dashboard-header">
+    <div>
+      <p class="section-kicker">Application Dashboard</p>
+      <h1 class="dashboard-title">Small Business Recovery Grant</h1>
+      <p class="dashboard-sub">
+        {% if sid %}
+          Session active &middot; Track your progress and eligibility below.
+        {% else %}
+          <a href="/form/" class="accent-link">Start your application</a> to see your personalised dashboard.
+        {% endif %}
+      </p>
+    </div>
+    <a href="/form/" class="btn btn-accent btn-lg">{% if sid %}Continue Application →{% else %}Start Application →{% endif %}</a>
+  </div>
+
+  <div class="dashboard-grid">
+
+    {# ── Completion ring ── #}
+    <div class="dash-card dash-card--completion">
+      <div class="dash-card-label">Completion</div>
+      <div class="completion-ring-wrap">
+        <svg class="completion-ring" viewBox="0 0 80 80" width="80" height="80">
+          <circle cx="40" cy="40" r="32" class="ring-track"/>
+          <circle cx="40" cy="40" r="32" class="ring-fill"
+            style="stroke-dashoffset: calc(201 - (201 * {{ checklist.completion_pct }}) / 100)"/>
+        </svg>
+        <span class="completion-pct">{{ checklist.completion_pct }}%</span>
+      </div>
+      <p class="completion-detail">
+        {{ checklist.total_filled }} / {{ checklist.total_required }} required fields
+      </p>
+      {% if checklist.completion_pct == 100 %}
+      <span class="status-pill status-pill--green">All fields complete</span>
+      {% elif checklist.completion_pct > 50 %}
+      <span class="status-pill status-pill--amber">In progress</span>
+      {% else %}
+      <span class="status-pill status-pill--gray">Getting started</span>
+      {% endif %}
+    </div>
+
+    {# ── Eligibility ── #}
+    <div class="dash-card dash-card--eligibility">
+      <div class="dash-card-label">Eligibility Status</div>
+      {% if eligibility.eligible == true %}
+        <div class="elig-status elig-status--pass">
+          <span class="elig-icon">✓</span>
+          <div>
+            <strong>Likely Eligible</strong>
+            <p>Your current data passes all eligibility rules.</p>
+          </div>
+        </div>
+      {% elif eligibility.eligible == false %}
+        <div class="elig-status elig-status--fail">
+          <span class="elig-icon">✗</span>
+          <div>
+            <strong>Not Currently Eligible</strong>
+            <p>One or more rules not met. See details below.</p>
+          </div>
+        </div>
+      {% else %}
+        <div class="elig-status elig-status--unknown">
+          <span class="elig-icon">?</span>
+          <div>
+            <strong>Incomplete Data</strong>
+            <p>Fill in financial fields to check eligibility.</p>
+          </div>
+        </div>
+      {% endif %}
+      {% if eligibility.reasons %}
+      <ul class="elig-reasons">
+        {% for r in eligibility.reasons[:5] %}
+        <li class="{% if r.disqualifying %}elig-reason--fail{% else %}elig-reason--info{% endif %}">
+          {{ r.reason }}
+        </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+
+    {# ── Award estimate ── #}
+    <div class="dash-card dash-card--estimate">
+      <div class="dash-card-label">Award Estimate</div>
+      {% if estimate.eligible == true %}
+        <div class="estimate-range">
+          <span class="estimate-low">${{ "{:,}".format(estimate.range_low) }}</span>
+          <span class="estimate-dash">—</span>
+          <span class="estimate-high">${{ "{:,}".format(estimate.range_high) }}</span>
+        </div>
+        <div class="estimate-tier">{{ estimate.tier_label }} tier</div>
+        <ul class="estimate-notes">
+          {% for note in estimate.notes %}
+          <li>{{ note }}</li>
+          {% endfor %}
+        </ul>
+      {% elif estimate.eligible == false %}
+        <div class="estimate-zero">$0</div>
+        <p class="estimate-reason">
+          {% if estimate.notes %}{{ estimate.notes[0] }}{% else %}Not eligible based on current inputs.{% endif %}
+        </p>
+      {% else %}
+        <div class="estimate-pending">—</div>
+        <p class="estimate-reason">Complete financial fields to see your estimate.</p>
+      {% endif %}
+    </div>
+
+    {# ── Deadline ── #}
+    <div class="dash-card dash-card--deadline">
+      <div class="dash-card-label">Application Deadline</div>
+      <div class="deadline-date">Dec 31, 2026</div>
+      <div class="deadline-countdown" id="deadline-countdown">Loading…</div>
+      <p class="deadline-note">Rolling review &middot; Earlier submissions reviewed first</p>
+    </div>
+
+  </div>
+
+  {# ── Checklist ── #}
+  {% if checklist.sections %}
+  <div class="checklist-section animate-in delay-2">
+    <div class="checklist-header">
+      <h2 class="checklist-title">Requirements Checklist</h2>
+      {% if checklist.missing_required %}
+      <span class="status-pill status-pill--amber">{{ checklist.missing_required | length }} field(s) remaining</span>
+      {% else %}
+      <span class="status-pill status-pill--green">All required fields filled</span>
+      {% endif %}
+    </div>
+
+    <div class="checklist-grid">
+      {% for section in checklist.sections %}
+      <div class="checklist-block">
+        <div class="checklist-block-title">{{ section.title }}</div>
+        {% for item in section['items'] %}
+        <div class="checklist-item {% if item.filled %}checklist-item--done{% elif item.required %}checklist-item--missing{% else %}checklist-item--optional{% endif %}">
+          <span class="checklist-icon">{% if item.filled %}✓{% elif item.required %}○{% else %}–{% endif %}</span>
+          <span class="checklist-label">
+            {{ item.label }}
+            {% if not item.required %}<span class="optional">optional</span>{% endif %}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── Next action ── #}
+  <div class="next-action animate-in delay-3">
+    <div class="next-action-inner">
+      <div>
+        <p class="next-action-kicker">Recommended next step</p>
+        {% if not sid %}
+          <p class="next-action-text">Start your application — takes about 5 minutes.</p>
+        {% elif checklist.completion_pct < 100 %}
+          <p class="next-action-text">
+            You still need to fill: <strong>{{ checklist.missing_required[:3] | join(', ') }}{% if checklist.missing_required | length > 3 %} and {{ checklist.missing_required | length - 3 }} more{% endif %}</strong>.
+          </p>
+        {% elif eligibility.eligible == false %}
+          <p class="next-action-text">Review the eligibility issues above before submitting.</p>
+        {% else %}
+          <p class="next-action-text">Your application looks good — proceed to review and submit.</p>
+        {% endif %}
+      </div>
+      {% if checklist.completion_pct == 100 and eligibility.eligible != false %}
+      <a href="/form/review" class="btn btn-accent">Review &amp; Submit →</a>
+      {% else %}
+      <a href="/form/" class="btn btn-primary">{% if sid %}Continue Filling →{% else %}Start Application →{% endif %}</a>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+  const el = document.getElementById('deadline-countdown');
+  if (!el) return;
+  const deadline = new Date('2026-12-31T23:59:59');
+  function update() {
+    const now = new Date();
+    const diff = deadline - now;
+    if (diff <= 0) { el.textContent = 'Deadline passed'; return; }
+    const days = Math.floor(diff / 864e5);
+    const hours = Math.floor((diff % 864e5) / 36e5);
+    el.textContent = days + 'd ' + hours + 'h remaining';
+  }
+  update();
+  setInterval(update, 60000);
+}());
+</script>
+{% endblock %}

@@ -1,145 +1,151 @@
 {% extends "base.html" %}
 {% block title %}Step 1 — Business Info{% endblock %}
 {% block content %}
-<div class="form-shell">
-  <div class="form-progress">
-    <div class="progress-step active">1 Business Info</div>
-    <div class="progress-step">2 Financials</div>
-    <div class="progress-step">3 Documents</div>
+<div class="form-page">
+  <div class="form-layout animate-in">
+
+    {# ── Step sidebar ── #}
+    <aside class="step-sidebar">
+      <p class="step-sidebar-title">Application</p>
+      <div class="step-nav">
+        <div class="step-nav-item active">
+          <span class="step-nav-num">1</span>
+          <span class="step-nav-text">
+            <span class="step-nav-label">Business Info</span>
+          </span>
+        </div>
+        <div class="step-nav-item">
+          <span class="step-nav-num">2</span>
+          <span class="step-nav-text">
+            <span class="step-nav-label">Financials</span>
+          </span>
+        </div>
+        <div class="step-nav-item">
+          <span class="step-nav-num">3</span>
+          <span class="step-nav-text">
+            <span class="step-nav-label">Documents</span>
+          </span>
+        </div>
+      </div>
+      {% include "_sidebar_stats.html" %}
+      <div class="sidebar-dashboard-link">
+        <a href="/dashboard" class="btn btn-ghost btn-sm">View Dashboard →</a>
+      </div>
+    </aside>
+
+    {# ── Form card ── #}
+    <div>
+      {% if errors %}
+      <div class="alert alert-error" role="alert">
+        <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+      </div>
+      {% endif %}
+
+      <div class="form-card">
+        <h1 class="form-card-title">Business Information</h1>
+        <p class="form-card-sub">Tell us about your business. Fields marked <span class="req">*</span> are required.</p>
+
+        <form
+          id="step1-form"
+          method="post"
+          action="/form/step/1"
+          toolname="submit_biz_details"
+          tooldescription="SAVE business name, type, year founded, state, and EIN. Does not reload this tab. After success, immediately call submit_fin_details if the user also gave financials. Do NOT use propose_fields."
+          novalidate>
+
+          <div class="field-group">
+            <label for="business_name">Business Legal Name <span class="req">*</span></label>
+            <input
+              type="text"
+              id="business_name"
+              name="business_name"
+              value="{{ values.get('business_name', '') }}"
+              autocomplete="organization"
+              required
+              minlength="2"
+              maxlength="200"
+              toolparamdescription="Legal registered name of the business, as it appears on tax documents."
+              placeholder="e.g. River Coffee Roasters LLC">
+          </div>
+
+          <div class="field-group">
+            <label for="business_type">Business Type <span class="req">*</span></label>
+            <select
+              id="business_type"
+              name="business_type"
+              required
+              toolparamdescription="Legal structure of the business.">
+              <option value="">— Select —</option>
+              <option value="sole_proprietor" {% if values.get('business_type')=='sole_proprietor' %}selected{% endif %}>Sole Proprietor</option>
+              <option value="llc"             {% if values.get('business_type')=='llc' %}selected{% endif %}>LLC</option>
+              <option value="corporation"     {% if values.get('business_type')=='corporation' %}selected{% endif %}>Corporation</option>
+              <option value="nonprofit"       {% if values.get('business_type')=='nonprofit' %}selected{% endif %}>Nonprofit</option>
+            </select>
+          </div>
+
+          <div class="field-group">
+            <label for="year_founded">Year Founded <span class="req">*</span></label>
+            <input
+              type="number"
+              id="year_founded"
+              name="year_founded"
+              value="{{ values.get('year_founded', '') }}"
+              min="1800"
+              max="2025"
+              required
+              toolparamdescription="Year the business was legally established. Must be at least 1 year ago."
+              placeholder="e.g. 2019">
+          </div>
+
+          <div class="field-group">
+            <label for="state">State of Registration <span class="req">*</span></label>
+            <select
+              id="state"
+              name="state"
+              required
+              toolparamdescription="US state where the business is legally registered.">
+              <option value="">— Select State —</option>
+              {% for s in ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN',
+                           'IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV',
+                           'NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN',
+                           'TX','UT','VT','VA','WA','WV','WI','WY','DC'] %}
+              <option value="{{ s }}" {% if values.get('state')==s %}selected{% endif %}>{{ s }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="field-group">
+            <label for="ein">EIN (Employer ID Number)</label>
+            <input
+              type="text"
+              id="ein"
+              name="ein"
+              value="{{ values.get('ein', '') }}"
+              placeholder="12-3456789"
+              pattern="\d{2}-\d{7}"
+              toolparamdescription="Federal Employer Identification Number in XX-XXXXXXX format. Leave blank if sole proprietor without EIN.">
+            <p class="field-hint">Format: 12-3456789 &middot; Sole proprietors without an EIN may leave this blank.</p>
+          </div>
+
+          <div class="form-actions">
+            <span></span>
+            <div class="form-actions-right">
+              <button type="submit" class="btn btn-primary">Continue to Step 2 →</button>
+            </div>
+          </div>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        </form>
+      </div>
+    </div>
+
   </div>
-  <h2 class="form-title">Step 1 — Business Information</h2>
-  <p class="form-desc">Tell us about your business. Fields marked <span class="req">*</span> are required.</p>
-
-  {% if errors %}
-  <div class="alert alert-error" role="alert">
-    <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
-  </div>
-  {% endif %}
-
-  <form
-    id="step1-form"
-    method="post"
-    action="/form/step/1"
-    toolname="submit_biz_details"
-    tooldescription="Submit Step 1 business info: legal name, type, year founded, state, and EIN."
-    novalidate>
-
-    <div class="field-group">
-      <label for="business_name">Business Legal Name <span class="req">*</span></label>
-      <input
-        type="text"
-        id="business_name"
-        name="business_name"
-        value="{{ values.get('business_name', '') }}"
-        autocomplete="organization"
-        required
-        minlength="2"
-        maxlength="200"
-        toolparamdescription="Legal registered name of the business, as it appears on tax documents.">
-    </div>
-
-    <div class="field-group">
-      <label for="business_type">Business Type <span class="req">*</span></label>
-      <select
-        id="business_type"
-        name="business_type"
-        required
-        toolparamdescription="Legal structure of the business.">
-        <option value="">— Select —</option>
-        <option value="sole_proprietor" {% if values.get('business_type')=='sole_proprietor' %}selected{% endif %}>Sole Proprietor</option>
-        <option value="llc"             {% if values.get('business_type')=='llc' %}selected{% endif %}>LLC</option>
-        <option value="corporation"     {% if values.get('business_type')=='corporation' %}selected{% endif %}>Corporation</option>
-        <option value="nonprofit"       {% if values.get('business_type')=='nonprofit' %}selected{% endif %}>Nonprofit</option>
-      </select>
-    </div>
-
-    <div class="field-group">
-      <label for="year_founded">Year Founded <span class="req">*</span></label>
-      <input
-        type="number"
-        id="year_founded"
-        name="year_founded"
-        value="{{ values.get('year_founded', '') }}"
-        min="1800"
-        max="2025"
-        required
-        toolparamdescription="Year the business was legally established. Must be at least 1 year ago.">
-    </div>
-
-    <div class="field-group">
-      <label for="state">State of Registration <span class="req">*</span></label>
-      <select
-        id="state"
-        name="state"
-        required
-        toolparamdescription="US state where the business is legally registered.">
-        <option value="">— Select State —</option>
-        {% for s in ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN',
-                     'IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV',
-                     'NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN',
-                     'TX','UT','VT','VA','WA','WV','WI','WY','DC'] %}
-        <option value="{{ s }}" {% if values.get('state')==s %}selected{% endif %}>{{ s }}</option>
-        {% endfor %}
-      </select>
-    </div>
-
-    <div class="field-group">
-      <label for="ein">EIN (Employer ID Number)</label>
-      <input
-        type="text"
-        id="ein"
-        name="ein"
-        value="{{ values.get('ein', '') }}"
-        placeholder="12-3456789"
-        pattern="\d{2}-\d{7}"
-        toolparamdescription="Federal Employer Identification Number in XX-XXXXXXX format. Leave blank if sole proprietor without EIN.">
-      <p class="field-hint">Format: 12-3456789 &middot; Sole proprietors without an EIN may leave this blank.</p>
-    </div>
-
-    <div class="form-actions">
-      <button type="submit" class="btn btn-primary">Continue to Step 2 →</button>
-    </div>
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-  </form>
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-(function () {
-  const form = document.getElementById('step1-form');
-  if (!form) return;
-
-  // Declarative tool: handle SubmitEvent for agent-invoked submissions.
-  // For human clicks, let the browser do a normal POST.
-  form.addEventListener('submit', function (e) {
-    if (!e.agentInvoked) return; // normal human submit — no interception needed
-    e.preventDefault();
-    e.respondWith(
-      fetch(form.action, { method: 'POST', body: new FormData(form) })
-        .then(function (r) { return r.json(); })
-        .catch(function (err) { return { error: err.message }; })
-    );
-    // Fire audit log for declarative agent submission
-    fetch('/api/audit/log', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tool_name: 'submit_biz_details', input_json: '{}', outcome: 'success' })
-    }).catch(function () {});
-  });
-
-  window.addEventListener('toolactivated', function (e) {
-    if (e.toolName === 'submit_biz_details') {
-      console.log('[PaperPilot] Agent activated submit_biz_details');
-    }
-  });
-
-  window.addEventListener('toolcancel', function (e) {
-    if (e.toolName === 'submit_biz_details') {
-      console.log('[PaperPilot] Agent cancelled submit_biz_details');
-    }
-  });
-}());
+if (window.paperpilotBindAgentForm) {
+  window.paperpilotBindAgentForm(document.getElementById('step1-form'));
+}
 </script>
 {% endblock %}
-

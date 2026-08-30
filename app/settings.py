@@ -28,3 +28,7 @@ SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-secret-paperpilot-change-in-prod"
 # ── Storage ────────────────────────────────────────────────────────────────
 UPLOADS_DIR: Path = Path(os.getenv("UPLOADS_DIR", "uploads"))
 DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./paperpilot.db")
+
+# ── Cookie security ────────────────────────────────────────────────────────
+# Set COOKIE_SECURE=true in production (HTTPS only). False in dev (HTTP).
+COOKIE_SECURE: bool = os.getenv("COOKIE_SECURE", "false").lower() == "true"

@@ -34,7 +34,7 @@ def _committed_values(session_id: str, db: DbSession) -> dict[str, str]:
     rows = db.exec(
         select(FieldValue).where(
             FieldValue.session_id == session_id,
-            FieldValue.committed == True,
+            FieldValue.committed.is_(True),
         )
     ).all()
     return {r.field_name: r.value for r in rows}
@@ -217,3 +217,187 @@ def flag_missing_or_risky(session_id: str, db: DbSession) -> dict:
         pass
 
     return {"flags": flags, "count": len(flags)}
+
+
+# ─── Award Estimate ──────────────────────────────────────────────────────────
+
+_TIER_TABLE = [
+    (50, 50_000, "High-impact"),
+    (30, 25_000, "Mid-tier"),
+    (15, 10_000, "Base"),
+]
+
+
+def calculate_award_estimate(
+    annual_revenue: float | None,
+    revenue_drop_pct: float | None,
+    employee_count: int | None,
+) -> dict:
+    """Return a tiered award estimate based on eligibility inputs.
+
+    Returns:
+        {
+          "eligible": bool,
+          "tier_label": str,
+          "base_amount": int,
+          "employee_bonus": int,
+          "max_award": int,
+          "range_low": int,
+          "range_high": int,
+          "notes": list[str],
+        }
+    """
+    notes: list[str] = []
+
+    if revenue_drop_pct is None or annual_revenue is None or employee_count is None:
+        return {
+            "eligible": None,
+            "tier_label": "Incomplete",
+            "base_amount": 0,
+            "employee_bonus": 0,
+            "max_award": 0,
+            "range_low": 0,
+            "range_high": 0,
+            "notes": ["Fill in annual revenue, revenue drop %, and employee count to see your estimate."],
+        }
+
+    if annual_revenue > 5_000_000:
+        return {
+            "eligible": False,
+            "tier_label": "Ineligible",
+            "base_amount": 0,
+            "employee_bonus": 0,
+            "max_award": 0,
+            "range_low": 0,
+            "range_high": 0,
+            "notes": ["Annual revenue exceeds the $5M cap."],
+        }
+
+    if revenue_drop_pct < 15:
+        return {
+            "eligible": False,
+            "tier_label": "Ineligible",
+            "base_amount": 0,
+            "employee_bonus": 0,
+            "max_award": 0,
+            "range_low": 0,
+            "range_high": 0,
+            "notes": [f"Revenue drop of {revenue_drop_pct:.1f}% is below the 15% minimum."],
+        }
+
+    if employee_count > 500:
+        return {
+            "eligible": False,
+            "tier_label": "Ineligible",
+            "base_amount": 0,
+            "employee_bonus": 0,
+            "max_award": 0,
+            "range_low": 0,
+            "range_high": 0,
+            "notes": [f"Employee count of {employee_count} exceeds the 500-employee cap."],
+        }
+
+    # Determine tier from revenue drop
+    base_amount = _TIER_TABLE[-1][1]
+    tier_label = _TIER_TABLE[-1][2]
+    for threshold, amount, label in _TIER_TABLE:
+        if revenue_drop_pct >= threshold:
+            base_amount = amount
+            tier_label = label
+            notes.append(f"{revenue_drop_pct:.0f}% revenue drop qualifies for the {label} tier.")
+            break
+
+    # Employee bonus: $500 per employee, max $10,000
+    employee_bonus = min(employee_count * 500, 10_000)
+    if employee_bonus > 0:
+        notes.append(f"{employee_count} employees adds up to ${employee_bonus:,} in workforce support bonus.")
+
+    max_award = base_amount + employee_bonus
+    range_low = int(max_award * 0.6)
+    range_high = max_award
+    notes.append("Final award determined by program reviewers after verification.")
+
+    return {
+        "eligible": True,
+        "tier_label": tier_label,
+        "base_amount": base_amount,
+        "employee_bonus": employee_bonus,
+        "max_award": max_award,
+        "range_low": range_low,
+        "range_high": range_high,
+        "notes": notes,
+    }
+
+
+def get_application_checklist(session_id: str, db: DbSession) -> dict:
+    """Return a structured checklist of all required fields and their status."""
+    values = _committed_values(session_id, db)
+
+    sections = [
+        {
+            "title": "Step 1 — Business Info",
+            "fields": [
+                ("business_name",    "Business Legal Name",   True),
+                ("business_type",    "Business Type",         True),
+                ("year_founded",     "Year Founded",          True),
+                ("state",            "State of Registration", True),
+                ("ein",              "EIN",                   False),
+            ],
+        },
+        {
+            "title": "Step 2 — Financial Info",
+            "fields": [
+                ("annual_revenue",      "Annual Gross Revenue",  True),
+                ("employee_count",      "Full-Time Employees",   True),
+                ("revenue_drop_pct",    "Revenue Drop (%)",      True),
+                ("use_of_funds",        "Primary Use of Funds",  True),
+                ("use_of_funds_detail", "Use of Funds Detail",   False),
+            ],
+        },
+        {
+            "title": "Step 3 — Applicant",
+            "fields": [
+                ("applicant_name",  "Full Name",     True),
+                ("applicant_email", "Email Address", True),
+                ("certify",         "Certification", True),
+            ],
+        },
+    ]
+
+    total_required = 0
+    total_filled   = 0
+    checklist_sections = []
+
+    for section in sections:
+        items = []
+        for field_key, label, required in section["fields"]:
+            filled = bool(values.get(field_key, "").strip())
+            if required:
+                total_required += 1
+                if filled:
+                    total_filled += 1
+            items.append({
+                "field":    field_key,
+                "label":    label,
+                "required": required,
+                "filled":   filled,
+                "value":    values.get(field_key, ""),
+            })
+        checklist_sections.append({"title": section["title"], "items": items})
+
+    completion_pct = int((total_filled / total_required * 100) if total_required else 0)
+
+    missing_required = [
+        item["label"]
+        for section in checklist_sections
+        for item in section["items"]
+        if item["required"] and not item["filled"]
+    ]
+
+    return {
+        "sections":        checklist_sections,
+        "total_required":  total_required,
+        "total_filled":    total_filled,
+        "completion_pct":  completion_pct,
+        "missing_required": missing_required,
+    }

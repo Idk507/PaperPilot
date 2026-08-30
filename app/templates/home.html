@@ -1,59 +1,230 @@
 {% extends "base.html" %}
-
-{% block title %}Welcome{% endblock %}
-
+{% block title %}Small Business Recovery Grant{% endblock %}
 {% block content %}
-<section class="hero">
-  <div class="hero-badge">WebMCP Challenge 2026</div>
-  <h1>Grant paperwork,<br><span class="accent">made human again.</span></h1>
-  <p class="hero-sub">
-    PaperPilot lets you fill out the <strong>Small Business Recovery Grant</strong>
-    the normal way — but your AI agent can explain confusing fields, check your
-    eligibility, and extract data from your documents, all while you stay in control.
-  </p>
-  <a href="/form/" class="btn btn-primary btn-lg">Start Your Application</a>
-  <p class="hero-note">
-    No account needed &middot; Save and resume anytime &middot; Human always in control
-  </p>
-</section>
 
-<section class="how-it-works" id="about">
-  <h2>How it works</h2>
-  <div class="steps-grid">
-    <div class="step">
-      <div class="step-num">1</div>
-      <h3>Fill out the form</h3>
-      <p>Complete the 3-step grant application like any normal web form. No agent required.</p>
+{# ── Hero ── #}
+<section class="hero">
+  <div class="hero-inner animate-in">
+    <div>
+      <h1 class="hero-headline">
+        Grant&nbsp;paperwork,<br>
+        <em>made human.</em>
+      </h1>
+      <hr class="hero-rule">
+      <p class="hero-body delay-1 animate-in">
+        The Small Business Recovery Grant — guided by an AI that knows when
+        to step back. Ask it questions, let it pre-fill from your documents,
+        and every change is yours to accept or reject.
+      </p>
     </div>
-    <div class="step">
-      <div class="step-num">2</div>
-      <h3>Ask your agent for help</h3>
-      <p>Open the form in a WebMCP-enabled browser. Your agent can explain fields,
-         check eligibility, and read your uploaded documents.</p>
-    </div>
-    <div class="step">
-      <div class="step-num">3</div>
-      <h3>Review and accept</h3>
-      <p>Anything the agent suggests shows up as a highlighted proposal.
-         You accept or reject each change — nothing commits without your click.</p>
+    <div class="hero-cta-group delay-2 animate-in">
+      <span class="hero-cta-label">Ready to apply?</span>
+      <span class="hero-cta-title">Small Business Recovery Grant</span>
+      <p class="hero-cta-sub">
+        Three short steps. No account required. Save your progress
+        and return any time.
+      </p>
+      <a href="/form/" class="btn btn-accent btn-lg">Start Your Application →</a>
+      <div class="hero-cta-note">
+        <span>No account needed</span>
+        <span>Save &amp; resume anytime</span>
+        <span>Human always in control</span>
+      </div>
     </div>
   </div>
 </section>
 
-<section class="webmcp-note">
-  <h2>Why WebMCP?</h2>
-  <p>
-    Bureaucratic forms break naive AI agents (screenshot + click simulation) and blind
-    backend automation is dangerous — you do <em>not</em> want an agent submitting a grant
-    application without you seeing the final state.
-    WebMCP's model — tools live in the page, execute against real page state, and the
-    human watches the same UI the agent is acting on — is a structural fit, not a bolt-on.
-  </p>
-  <p>
-    <a href="https://developer.chrome.com/docs/ai/webmcp" target="_blank" rel="noopener">
-      Learn about WebMCP →
-    </a>
-  </p>
+<div class="section-divider"></div>
+
+<div class="section-divider"></div>
+
+{# ── Pre-Qualification Screener ── #}
+<section class="screener-section">
+  <p class="section-kicker animate-in">Instant pre-qualification</p>
+  <div class="screener-card animate-in delay-1">
+    <div class="screener-header">
+      <div class="screener-header-left">
+        <h2 class="screener-headline">Check before you apply.</h2>
+        <p class="screener-sub">
+          Enter three numbers to instantly see if you meet the core eligibility thresholds
+          — no account, no form, no waiting.
+        </p>
+      </div>
+      <div class="screener-header-right">
+        <div class="screener-fields">
+          <div class="screener-field">
+            <label for="scr-revenue">Annual Revenue (USD)</label>
+            <input type="number" id="scr-revenue" placeholder="e.g. 280000" min="0">
+          </div>
+          <div class="screener-field">
+            <label for="scr-drop">Revenue Drop (%)</label>
+            <input type="number" id="scr-drop" placeholder="e.g. 35" min="0" max="100">
+          </div>
+          <div class="screener-field">
+            <label for="scr-emp">Full-Time Employees</label>
+            <input type="number" id="scr-emp" placeholder="e.g. 8" min="0">
+          </div>
+        </div>
+        <div id="screener-result" class="screener-result"></div>
+        <a href="/form/" class="btn btn-accent" style="margin-top:0.85rem;">
+          Start Full Application →
+        </a>
+      </div>
+    </div>
+  </div>
 </section>
+
+{# ── How it works ── #}
+<section class="how-section" id="about">
+  <p class="section-kicker animate-in delay-1">How it works</p>
+  <h2 class="section-heading animate-in delay-2">
+    A grant form that works<br>with your AI agent.
+  </h2>
+  <div class="steps-track animate-in delay-3">
+    <div class="step-item">
+      <div class="step-num">01</div>
+      <div class="step-title">Fill the form yourself</div>
+      <p class="step-body">
+        Complete the 3-step grant application exactly like any normal web form.
+        No AI required — it works on every browser.
+      </p>
+    </div>
+    <div class="step-item">
+      <div class="step-num">02</div>
+      <div class="step-title">Let your agent assist</div>
+      <p class="step-body">
+        Open it in a WebMCP-enabled Chrome tab. Your agent can explain
+        confusing fields, check your eligibility, and extract data from
+        uploaded tax returns or bank statements.
+      </p>
+    </div>
+    <div class="step-item">
+      <div class="step-num">03</div>
+      <div class="step-title">You decide every change</div>
+      <p class="step-body">
+        Every agent suggestion appears as a highlighted proposal.
+        Nothing is saved until you click Accept — one field at a time,
+        or all at once.
+      </p>
+    </div>
+  </div>
+</section>
+
+{# ── Agent feature ── #}
+<section class="agent-feature">
+  <div class="agent-feature-grid">
+    <div class="agent-feature-text animate-in">
+      <p class="section-kicker">Why WebMCP?</p>
+      <h2>
+        The agent lives inside the page.<br>
+        Not behind it.
+      </h2>
+      <p>
+        Screenshot-based agents are fragile on bureaucratic forms — they
+        guess at buttons and can submit without you seeing the final state.
+        Backend automation is worse: it's blind to what you're looking at.
+      </p>
+      <p>
+        WebMCP gives the page an explicit capability contract. The agent
+        calls structured tools that run against your actual session state,
+        in the same browser tab you're watching.
+      </p>
+      <p>
+        <a href="https://developer.chrome.com/docs/ai/webmcp" target="_blank" rel="noopener">
+          Read about WebMCP on Chrome Docs →
+        </a>
+      </p>
+    </div>
+    <div class="animate-in delay-2">
+      <div class="tool-list">
+        <div class="tool-list-header">document.modelContext — registered tools</div>
+        <div class="tool-item">
+          <span class="tool-name">explain_field</span>
+          <span class="tool-desc">Plain-language explanation of any field. Contextual to what you've already filled. <span class="tool-badge tool-badge-read">read-only</span></span>
+        </div>
+        <div class="tool-item">
+          <span class="tool-name">check_eligibility</span>
+          <span class="tool-desc">Runs eligibility rules against your session. Returns pass/fail + reasons. <span class="tool-badge tool-badge-read">read-only</span></span>
+        </div>
+        <div class="tool-item">
+          <span class="tool-name">flag_issues</span>
+          <span class="tool-desc">Scans for empty fields, inconsistencies, and common rejection triggers. <span class="tool-badge tool-badge-read">read-only</span></span>
+        </div>
+        <div class="tool-item">
+          <span class="tool-name">propose_fields</span>
+          <span class="tool-desc">Suggests values for you to review. Nothing commits until you click Accept. <span class="tool-badge tool-badge-write">pending</span></span>
+        </div>
+        <div class="tool-item">
+          <span class="tool-name">extract_doc</span>
+          <span class="tool-desc">Reads your uploaded tax return or bank statement and proposes field values. <span class="tool-badge tool-badge-write">pending</span></span>
+        </div>
+        <div class="tool-item">
+          <span class="tool-name">save_progress</span>
+          <span class="tool-desc">Saves current session. Does not submit the application. <span class="tool-badge tool-badge-write">write</span></span>
+        </div>
+        <div class="tool-item">
+          <span class="tool-name">estimate_award</span>
+          <span class="tool-desc">Returns a tiered award range from revenue, drop %, and headcount. <span class="tool-badge tool-badge-read">read-only</span></span>
+        </div>
+        <div class="tool-item">
+          <span class="tool-name">get_checklist</span>
+          <span class="tool-desc">Lists required fields, what's missing, and completion %. <span class="tool-badge tool-badge-read">read-only</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 {% endblock %}
 
+{% block extra_scripts %}
+<script>
+(function () {
+  var revenue = document.getElementById('scr-revenue');
+  var drop    = document.getElementById('scr-drop');
+  var emp     = document.getElementById('scr-emp');
+  var result  = document.getElementById('screener-result');
+  if (!revenue || !drop || !emp) return;
+
+  function screen() {
+    var rev = parseFloat(revenue.value);
+    var drp = parseFloat(drop.value);
+    var employees = parseInt(emp.value, 10);
+
+    result.className = 'screener-result show';
+
+    if (isNaN(rev) || isNaN(drp) || isNaN(employees)) {
+      result.className = 'screener-result show screener-result--partial';
+      result.textContent = 'Fill all three fields to see your result.';
+      return;
+    }
+    if (rev > 5000000) {
+      result.className = 'screener-result show screener-result--ineligible';
+      result.textContent = '\u2717 Revenue over $5M \u2014 exceeds the grant cap.';
+      return;
+    }
+    if (employees > 500) {
+      result.className = 'screener-result show screener-result--ineligible';
+      result.textContent = '\u2717 Over 500 employees \u2014 exceeds the headcount cap.';
+      return;
+    }
+    if (drp < 15) {
+      result.className = 'screener-result show screener-result--ineligible';
+      result.textContent = '\u2717 Revenue drop below 15% \u2014 minimum threshold not met.';
+      return;
+    }
+    var base = drp >= 50 ? 50000 : drp >= 30 ? 25000 : 10000;
+    var bonus = Math.min(employees * 500, 10000);
+    var max = base + bonus;
+    var low = Math.round(max * 0.6);
+    result.className = 'screener-result show screener-result--eligible';
+    result.textContent = '\u2713 Likely eligible \u2014 estimated award $' +
+      low.toLocaleString() + '\u2013$' + max.toLocaleString() + '. Start the full application to confirm.';
+  }
+
+  [revenue, drop, emp].forEach(function(el) {
+    el.addEventListener('input', screen);
+  });
+}());
+</script>
+{% endblock %}

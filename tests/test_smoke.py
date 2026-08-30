@@ -22,6 +22,6 @@ def test_root_html_content():
 
 def test_app_imports_cleanly():
     """Verifies all routers and models import without errors."""
-    import app.main  # noqa: F401
-    import app.db    # noqa: F401
+    import app.db
+    import app.main
     import app.models  # noqa: F401

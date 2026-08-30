@@ -218,7 +218,7 @@ def _complete_form(client: TestClient) -> str:
 
 
 def test_review_page_shows_all_fields(client: TestClient):
-    sid = _complete_form(client)
+    _complete_form(client)
     r = client.get("/form/review")
     assert r.status_code == 200
     assert "River Coffee" in r.text
@@ -268,4 +268,47 @@ def test_resume_shows_correct_step(client: TestClient):
     # Previously saved value should be pre-filled
     r2 = client.get("/form/step/1")
     assert "Resume Test" in r2.text
+
+
+def test_step1_agent_json_submit(client: TestClient):
+    """WebMCP agent fetch() sends Accept: application/json and must not get HTML."""
+    client.get("/form/")
+    sid = client.cookies.get("paperpilot_session")
+    r = client.post(
+        "/form/step/1",
+        data={
+            "business_name": "Apex Tech LLC",
+            "business_type": "llc",
+            "year_founded": "2020",
+            "state": "CA",
+            "ein": "12-3456789",
+            "csrf_token": generate_csrf_token(sid),
+        },
+        headers={"Accept": "application/json"},
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert data["ok"] is True
+    assert data["next"] == "/form/step/2"
+    assert "<!DOCTYPE" not in r.text
+
+
+def test_step1_agent_json_validation_errors(client: TestClient):
+    client.get("/form/")
+    sid = client.cookies.get("paperpilot_session")
+    r = client.post(
+        "/form/step/1",
+        data={
+            "business_name": "",
+            "business_type": "",
+            "year_founded": "",
+            "state": "",
+            "csrf_token": generate_csrf_token(sid),
+        },
+        headers={"Accept": "application/json"},
+    )
+    assert r.status_code == 422
+    data = r.json()
+    assert data["ok"] is False
+    assert data["errors"]
 

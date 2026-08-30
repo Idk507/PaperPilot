@@ -7,14 +7,13 @@ Also verifies read-only guarantee (no FieldValue rows written by check/flags).
 from __future__ import annotations
 
 import pytest
-from sqlmodel import Session as DbSession, SQLModel, create_engine
+from sqlmodel import Session as DbSession
 from starlette.testclient import TestClient
 
 from app.db import FieldValue, FormSession, engine
 from app.main import app
 from app.services.rules_engine import check_eligibility, flag_missing_or_risky
 from app.services.session_utils import generate_csrf_token
-
 
 # ── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -47,7 +46,7 @@ def _set_fields(session_id: str, fields: dict, db: DbSession):
             __import__("sqlmodel", fromlist=["select"]).select(FieldValue).where(
                 FieldValue.session_id == session_id,
                 FieldValue.field_name == field_name,
-                FieldValue.committed == True,  # noqa: E712
+                FieldValue.committed == True,
             )
         ).first()
         if existing:

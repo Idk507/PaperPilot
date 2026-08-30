@@ -14,7 +14,12 @@ from sqlmodel import Session as DbSession
 
 from app.db import get_db
 from app.services.hooks import RateLimitExceeded, post_execute_hook, pre_execute_hook
-from app.services.rules_engine import check_eligibility, flag_missing_or_risky
+from app.services.rules_engine import (
+    calculate_award_estimate,
+    check_eligibility,
+    flag_missing_or_risky,
+    get_application_checklist,
+)
 
 router = APIRouter(prefix="/api/eligibility", tags=["eligibility"])
 
@@ -71,3 +76,61 @@ async def eligibility_flags(
     result = flag_missing_or_risky(session_id, db)
     post_execute_hook(log_id, result, "success", db)
     return result
+
+
+@router.get("/estimate")
+async def award_estimate(
+    request: Request,
+    db: DbSession = Depends(get_db),
+):
+    """Return a tiered award estimate for the current session."""
+    session_id = _require_session(request)
+    from sqlmodel import select
+    from app.db import FieldValue
+    rows = db.exec(
+        select(FieldValue).where(
+            FieldValue.session_id == session_id,
+            FieldValue.committed == True,
+        )
+    ).all()
+    values = {r.field_name: r.value for r in rows}
+    try:
+        revenue = float(values["annual_revenue"])
+    except (KeyError, ValueError):
+        revenue = None
+    try:
+        drop = float(values["revenue_drop_pct"])
+    except (KeyError, ValueError):
+        drop = None
+    try:
+        emp = int(float(values["employee_count"]))
+    except (KeyError, ValueError):
+        emp = None
+    return calculate_award_estimate(revenue, drop, emp)
+
+
+@router.get("/checklist")
+async def application_checklist(
+    request: Request,
+    db: DbSession = Depends(get_db),
+):
+    """Return a structured checklist of required fields and completion status."""
+    session_id = _require_session(request)
+    return get_application_checklist(session_id, db)
+
+
+@router.post("/screen")
+async def quick_screen(request: Request):
+    """Quick eligibility pre-screen — no session required.
+
+    Body: { annual_revenue, revenue_drop_pct, employee_count }
+    Returns estimate + eligible bool. Used by home-page screener widget.
+    """
+    body = await request.json()
+    try:
+        revenue = float(body.get("annual_revenue", 0))
+        drop    = float(body.get("revenue_drop_pct", 0))
+        emp     = int(float(body.get("employee_count", 0)))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=422, detail="Provide numeric annual_revenue, revenue_drop_pct, employee_count.")
+    return calculate_award_estimate(revenue, drop, emp)
