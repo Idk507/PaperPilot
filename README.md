@@ -160,7 +160,7 @@ The key invariant: **every agent write is `committed=False`**. The `FieldValue.c
 
 ## Live demo
 
-**Render URL:** _https://paperpilot.onrender.com_ *(deploy via Render dashboard — see render.yaml)*
+**Live URL:** https://paperpilot-617103164879.us-central1.run.app *(Google Cloud Run)*
 
 ---
 

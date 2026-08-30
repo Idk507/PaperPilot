@@ -1,7 +1,7 @@
 # Demo Script — PaperPilot (3 minutes)
 
 **Format:** screen recording + voiceover. Use Chrome with WebMCP flag enabled.
-**URL:** https://paperpilot.onrender.com (or localhost:8000)
+**URL:** https://paperpilot-617103164879.us-central1.run.app (or localhost:8000)
 
 ---
 

@@ -127,7 +127,7 @@ With WebMCP:
 
 ## Try it yourself
 
-**Live URL:** https://paperpilot.onrender.com
+**Live URL:** https://paperpilot-617103164879.us-central1.run.app
 
 **To test with an agent:**
 1. Open Chrome 149+ → `chrome://flags/#enable-webmcp-testing` → Enabled → Relaunch
